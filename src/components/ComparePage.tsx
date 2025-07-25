@@ -7,44 +7,35 @@ import {
   TouchableOpacity,
   ScrollView,
   StatusBar,
+  Alert,
+  TextInput,
+  ActivityIndicator,
 } from "react-native";
-import { HomeIcon, CompareIcon } from "./SvgIcons";
+import { useCompare } from "../store/CompareStore";
 
 interface ComparePageProps {
   onBack?: () => void;
   onFruitPress?: (fruitName: string) => void;
   onNavigateToHome?: () => void;
+  onNavigateToCamera?: () => void;
+  onNavigateToSearch?: () => void;
 }
 
 const ComparePage: React.FC<ComparePageProps> = ({
   onBack,
   onFruitPress,
   onNavigateToHome,
+  onNavigateToCamera,
+  onNavigateToSearch,
 }) => {
-  const [compareList, setCompareList] = useState([
-    {
-      id: "1",
-      name: "红富士苹果",
-      price: "¥6.8/斤",
-      rating: 4.8,
-      sweetness: 4,
-      juiciness: 5,
-      crispness: 5,
-      origin: "山东烟台",
-      description: "脆甜爽口，汁水丰富",
-    },
-    {
-      id: "2",
-      name: "嘎啦苹果",
-      price: "¥5.2/斤",
-      rating: 4.5,
-      sweetness: 3,
-      juiciness: 4,
-      crispness: 4,
-      origin: "新疆阿克苏",
-      description: "口感清脆，酸甜适中",
-    },
-  ]);
+  const { state, removeItem, clearAll } = useCompare();
+  const compareList = state.items;
+
+  // 个性化分析状态
+  const [personalizedPrice, setPersonalizedPrice] = useState("");
+  const [personalizedNote, setPersonalizedNote] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
 
   // 预留的功能函数
   const handleBack = () => {
@@ -53,22 +44,145 @@ const ComparePage: React.FC<ComparePageProps> = ({
   };
 
   const handleAddToCompare = () => {
-    console.log("添加对比项");
+    Alert.alert(
+      "添加水果到比较",
+      "请选择添加方式",
+      [
+        { text: "取消", style: "cancel" },
+        {
+          text: "拍照识别",
+          onPress: () => {
+            console.log("选择拍照识别");
+            onNavigateToCamera?.();
+          },
+        },
+        {
+          text: "手动输入",
+          onPress: () => {
+            console.log("选择手动输入");
+            onNavigateToSearch?.();
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const handleRemoveFromCompare = (id: string) => {
-    setCompareList(compareList.filter((item) => item.id !== id));
+    removeItem(id);
     console.log("移除对比项:", id);
   };
 
   const handleClearAll = () => {
-    setCompareList([]);
-    console.log("清空对比");
+    Alert.alert("确认清空", "确定要清空所有比较项目吗？", [
+      { text: "取消", style: "cancel" },
+      { text: "确定", style: "destructive", onPress: () => clearAll() },
+    ]);
   };
 
   const handleFruitPress = (fruitName: string) => {
     console.log("查看水果详情:", fruitName);
-    onFruitPress?.(fruitName);
+    // onFruitPress?.(fruitName);
+  };
+
+  // 个性化分析处理函数
+  const handlePersonalizedAnalysis = async () => {
+    if (compareList.length === 0) {
+      Alert.alert("提示", "请先添加水果到比较列表");
+      return;
+    }
+
+    if (!personalizedPrice.trim()) {
+      Alert.alert("提示", "请输入您的预算价格");
+      return;
+    }
+
+    // 验证价格格式
+    const priceRegex = /^\d+(\.\d{1,2})?$/;
+    if (!priceRegex.test(personalizedPrice.trim())) {
+      Alert.alert("提示", "请输入正确的价格格式（如：10.5）");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+
+    try {
+      // Mock API调用 - 模拟分析过程
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Mock分析结果
+      const mockResult = generateMockAnalysisResult();
+      setAnalysisResult(mockResult);
+    } catch (error) {
+      Alert.alert("分析失败", "请稍后重试");
+      console.error("个性化分析失败:", error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // 生成Mock分析结果
+  const generateMockAnalysisResult = (): string => {
+    const budget = parseFloat(personalizedPrice);
+    const fruitNames = compareList.map((item) => item.name).join("、");
+    const avgPrice =
+      compareList.reduce((sum, item) => {
+        const price = parseFloat(
+          item.price.replace("¥", "").replace("/斤", "")
+        );
+        return sum + price;
+      }, 0) / compareList.length;
+
+    let recommendation = "";
+
+    if (budget >= avgPrice) {
+      const bestFruit = compareList.reduce((best, current) =>
+        current.rating > best.rating ? current : best
+      );
+      recommendation = `🎯 根据您的预算 ¥${budget}/斤，推荐选择「${bestFruit.name}」\n\n✨ 推荐理由：\n• 综合评分最高（${bestFruit.rating}/5）\n• 在您的预算范围内\n• ${bestFruit.description}`;
+    } else {
+      const affordableFruits = compareList.filter((item) => {
+        const price = parseFloat(
+          item.price.replace("¥", "").replace("/斤", "")
+        );
+        return price <= budget;
+      });
+
+      if (affordableFruits.length > 0) {
+        const bestAffordable = affordableFruits.reduce((best, current) =>
+          current.rating > best.rating ? current : best
+        );
+        recommendation = `💰 根据您的预算 ¥${budget}/斤，推荐选择「${bestAffordable.name}」\n\n✨ 推荐理由：\n• 在预算范围内的最佳选择\n• 性价比最高\n• ${bestAffordable.description}`;
+      } else {
+        const cheapest = compareList.reduce((cheapest, current) => {
+          const currentPrice = parseFloat(
+            current.price.replace("¥", "").replace("/斤", "")
+          );
+          const cheapestPrice = parseFloat(
+            cheapest.price.replace("¥", "").replace("/斤", "")
+          );
+          return currentPrice < cheapestPrice ? current : cheapest;
+        });
+        recommendation = `⚠️ 您的预算 ¥${budget}/斤 略低于当前对比水果的价格\n\n💡 建议：\n• 最接近预算的是「${
+          cheapest.name
+        }」(${cheapest.price})\n• 或者考虑调整预算到 ¥${avgPrice.toFixed(
+          1
+        )}/斤 左右`;
+      }
+    }
+
+    if (personalizedNote.trim()) {
+      recommendation += `\n\n📝 针对您的备注「${personalizedNote}」：\n• 建议选择口感和品质都符合您需求的水果\n• 可以关注产地和新鲜程度`;
+    }
+
+    return recommendation;
+  };
+
+  const clearPersonalizedInput = () => {
+    setPersonalizedPrice("");
+    setPersonalizedNote("");
+    setAnalysisResult(null);
   };
 
   const renderStars = (rating: number) => {
@@ -97,7 +211,7 @@ const ComparePage: React.FC<ComparePageProps> = ({
 
   const renderComparisonRow = (
     label: string,
-    key: "sweetness" | "juiciness" | "crispness"
+    key: "sweetness" | "moisture" | "crispness"
   ) => {
     const maxValue = Math.max(...compareList.map((item) => item[key]));
 
@@ -181,10 +295,7 @@ const ComparePage: React.FC<ComparePageProps> = ({
                       <Text style={styles.removeButtonText}>✕</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={styles.cardContent}
-                      onPress={() => handleFruitPress(item.name)}
-                    >
+                    <View style={styles.cardContent}>
                       <View style={styles.cardImageContainer}>
                         <Text style={styles.cardEmoji}>
                           {getFruitEmoji(item.name)}
@@ -205,7 +316,7 @@ const ComparePage: React.FC<ComparePageProps> = ({
                       <Text style={styles.cardDescription}>
                         {item.description}
                       </Text>
-                    </TouchableOpacity>
+                    </View>
                   </View>
                 ))}
 
@@ -262,7 +373,7 @@ const ComparePage: React.FC<ComparePageProps> = ({
 
                 {/* 口感对比 */}
                 {renderComparisonRow("甜度", "sweetness")}
-                {renderComparisonRow("汁水", "juiciness")}
+                {renderComparisonRow("汁水", "moisture")}
                 {renderComparisonRow("脆度", "crispness")}
 
                 {/* 产地对比 */}
@@ -283,7 +394,7 @@ const ComparePage: React.FC<ComparePageProps> = ({
             </View>
 
             {/* 推荐结论 */}
-            <View style={styles.recommendationContainer}>
+            {/* <View style={styles.recommendationContainer}>
               <Text style={styles.recommendationTitle}>推荐结论</Text>
               <View style={styles.recommendationContent}>
                 <View style={styles.recommendationItem}>
@@ -327,9 +438,108 @@ const ComparePage: React.FC<ComparePageProps> = ({
                   </View>
                 </View>
               </View>
-            </View>
+            </View> */}
           </>
         )}
+
+        {/* 个性化分析推荐 */}
+        <View style={styles.personalizedSection}>
+          <Text style={styles.personalizedTitle}>🤖 个性化分析推荐</Text>
+          <Text style={styles.personalizedSubtitle}>
+            输入您的预算和需求，获得专属推荐
+          </Text>
+
+          <View style={styles.inputContainer}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>预算价格 (元/斤)</Text>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputIcon}>💰</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="例如：10.5"
+                  placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                  value={personalizedPrice}
+                  onChangeText={setPersonalizedPrice}
+                  keyboardType="decimal-pad"
+                  editable={!isAnalyzing}
+                />
+                {personalizedPrice.length > 0 && !isAnalyzing && (
+                  <TouchableOpacity onPress={() => setPersonalizedPrice("")}>
+                    <Text style={styles.clearIcon}>✕</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>备注说明 (可选)</Text>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputIcon}>📝</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="例如：喜欢甜一点的，给小孩吃"
+                  placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                  value={personalizedNote}
+                  onChangeText={setPersonalizedNote}
+                  multiline
+                  maxLength={100}
+                  editable={!isAnalyzing}
+                />
+                {personalizedNote.length > 0 && !isAnalyzing && (
+                  <TouchableOpacity onPress={() => setPersonalizedNote("")}>
+                    <Text style={styles.clearIcon}>✕</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.buttonGroup}>
+              <TouchableOpacity
+                style={[
+                  styles.analyzeButton,
+                  isAnalyzing && styles.analyzingButton,
+                  (compareList.length === 0 || !personalizedPrice.trim()) &&
+                    styles.disabledButton,
+                ]}
+                onPress={handlePersonalizedAnalysis}
+                disabled={
+                  isAnalyzing ||
+                  compareList.length === 0 ||
+                  !personalizedPrice.trim()
+                }
+              >
+                {isAnalyzing ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color="#370B0B" />
+                    <Text style={styles.analyzeButtonText}>分析中...</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.analyzeButtonText}>获取个性化推荐</Text>
+                )}
+              </TouchableOpacity>
+
+              {!isAnalyzing &&
+                (personalizedPrice || personalizedNote || analysisResult) && (
+                  <TouchableOpacity
+                    style={styles.clearButton}
+                    onPress={clearPersonalizedInput}
+                  >
+                    <Text style={styles.clearButtonText}>清空</Text>
+                  </TouchableOpacity>
+                )}
+            </View>
+          </View>
+
+          {/* 分析结果显示 */}
+          {analysisResult && (
+            <View style={styles.resultContainer}>
+              <Text style={styles.resultTitle}>📊 分析结果</Text>
+              <View style={styles.resultContent}>
+                <Text style={styles.resultText}>{analysisResult}</Text>
+              </View>
+            </View>
+          )}
+        </View>
 
         {/* 底部间距，为统一导航栏留出空间 */}
         <View style={styles.bottomSpacing} />
@@ -647,6 +857,123 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 100, // 为底部导航栏留出空间
+  },
+  // 个性化分析推荐样式
+  personalizedSection: {
+    marginBottom: 32,
+    backgroundColor: "rgba(41, 36, 33, 0.1)",
+    borderRadius: 22,
+    padding: 20,
+  },
+  personalizedTitle: {
+    fontSize: 18,
+    fontWeight: "300",
+    color: "white",
+    marginBottom: 8,
+  },
+  personalizedSubtitle: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.7)",
+    marginBottom: 20,
+  },
+  inputContainer: {
+    gap: 16,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: "white",
+    fontWeight: "300",
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    minHeight: 48,
+  },
+  inputIcon: {
+    fontSize: 16,
+    marginRight: 12,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "white",
+    fontWeight: "300",
+    paddingVertical: 12,
+  },
+  clearIcon: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.7)",
+    padding: 4,
+  },
+  buttonGroup: {
+    gap: 12,
+    marginTop: 8,
+  },
+  analyzeButton: {
+    backgroundColor: "rgba(253, 221, 220, 0.9)",
+    height: 48,
+    borderRadius: 24,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  analyzingButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+  },
+  disabledButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    opacity: 0.5,
+  },
+  analyzeButtonText: {
+    fontSize: 16,
+    color: "#370B0B",
+    fontWeight: "500",
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  clearButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  clearButtonText: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "300",
+  },
+  resultContainer: {
+    marginTop: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 16,
+    padding: 16,
+  },
+  resultTitle: {
+    fontSize: 16,
+    color: "white",
+    fontWeight: "300",
+    marginBottom: 12,
+  },
+  resultContent: {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 12,
+    padding: 16,
+  },
+  resultText: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.9)",
+    lineHeight: 22,
   },
 });
 

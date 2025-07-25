@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
 import HomePage from "./HomePage";
-import DetailPage from "./DetailPage";
 import SearchPage from "./SearchPage";
 import ComparePage from "./ComparePage";
 import CameraPage from "./CameraPage";
@@ -10,7 +9,6 @@ import { HomeIcon, CompareIcon } from "./SvgIcons";
 
 export type PageType =
   | "home"
-  | "detail"
   | "photo"
   | "search"
   | "compare"
@@ -21,17 +19,22 @@ interface NavigationProps {}
 
 const Navigation: React.FC<NavigationProps> = () => {
   const [currentPage, setCurrentPage] = useState<PageType>("home");
-  const [selectedFruit, setSelectedFruit] = useState<string>("");
   const [recognitionResult, setRecognitionResult] = useState<any>(null);
   const [capturedImageUri, setCapturedImageUri] = useState<string>("");
-
-  const navigateToDetail = (fruitName: string) => {
-    setSelectedFruit(fruitName);
-    setCurrentPage("detail");
-  };
+  const [isAddingToCompare, setIsAddingToCompare] = useState(false); // 标记是否正在为比较添加水果
 
   const navigateToHome = () => {
     setCurrentPage("home");
+    setIsAddingToCompare(false); // 重置添加状态
+  };
+
+  const navigateBackFromRecognition = () => {
+    if (isAddingToCompare) {
+      setIsAddingToCompare(false);
+      setCurrentPage("compare");
+    } else {
+      setCurrentPage("home");
+    }
   };
 
   const handleDirectRecognition = (result: any, imageUri: string) => {
@@ -48,7 +51,14 @@ const Navigation: React.FC<NavigationProps> = () => {
   const handleRecognitionResult = (result: any, imageUri: string) => {
     setRecognitionResult(result);
     setCapturedImageUri(imageUri);
-    setCurrentPage("recognition");
+
+    if (isAddingToCompare) {
+      // 如果是从比较页面发起的，直接添加到比较并返回比较页面
+      setCurrentPage("recognition");
+      // 设置一个标记，让RecognitionResultPage知道需要自动添加到比较
+    } else {
+      setCurrentPage("recognition");
+    }
   };
 
   const handleSaveToFavorites = (result: any) => {
@@ -67,12 +77,26 @@ const Navigation: React.FC<NavigationProps> = () => {
 
   const navigateToCompare = () => {
     setCurrentPage("compare");
+    setIsAddingToCompare(false); // 重置添加状态
     console.log("导航到比较页面");
   };
 
   const handleEnterCompare = () => {
     console.log("查看比较");
     navigateToCompare();
+  };
+
+  // 从比较页面发起的添加操作
+  const navigateToCameraFromCompare = () => {
+    setIsAddingToCompare(true);
+    setCurrentPage("camera");
+    console.log("从比较页面导航到拍照页面");
+  };
+
+  const navigateToSearchFromCompare = () => {
+    setIsAddingToCompare(true);
+    setCurrentPage("search");
+    console.log("从比较页面导航到搜索页面");
   };
 
   // 判断是否显示底部导航栏
@@ -82,47 +106,45 @@ const Navigation: React.FC<NavigationProps> = () => {
 
   // 渲染当前页面
   const renderCurrentPage = () => {
-    const pageProps = {
-      style: styles.pageContainer, // 统一的页面容器样式
-    };
+    // 为有底部导航栏的页面添加底部间距
+    const pageStyle = shouldShowBottomNav()
+      ? [styles.pageContainer, styles.pageWithBottomNav]
+      : styles.pageContainer;
 
     switch (currentPage) {
       case "home":
         return (
-          <HomePage
-            onRecognitionResult={handleDirectRecognition}
-            onTextSearch={navigateToSearch}
-            onNavigateToCompare={navigateToCompare}
-          />
-        );
-      case "detail":
-        return (
-          <DetailPage
-            fruitName={selectedFruit}
-            onBack={navigateToHome}
-            onCompare={handleAddToCompare}
-            onEnterCompare={handleEnterCompare}
-          />
+          <View style={pageStyle}>
+            <HomePage
+              onRecognitionResult={handleDirectRecognition}
+              onTextSearch={navigateToSearch}
+              onNavigateToCompare={navigateToCompare}
+            />
+          </View>
         );
       case "search":
         return (
           <SearchPage
-            onBack={navigateToHome}
+            onBack={isAddingToCompare ? navigateToCompare : navigateToHome}
             onRecognitionResult={handleRecognitionResult}
           />
         );
       case "compare":
         return (
-          <ComparePage
-            onBack={navigateToHome}
-            onFruitPress={navigateToDetail}
-            onNavigateToHome={navigateToHome}
-          />
+          <View style={pageStyle}>
+            <ComparePage
+              onBack={navigateToHome}
+              onFruitPress={navigateToSearch}
+              onNavigateToHome={navigateToHome}
+              onNavigateToCamera={navigateToCameraFromCompare}
+              onNavigateToSearch={navigateToSearchFromCompare}
+            />
+          </View>
         );
       case "camera":
         return (
           <CameraPage
-            onBack={navigateToHome}
+            onBack={isAddingToCompare ? navigateToCompare : navigateToHome}
             onRecognitionResult={handleRecognitionResult}
           />
         );
@@ -131,18 +153,21 @@ const Navigation: React.FC<NavigationProps> = () => {
           <RecognitionResultPage
             result={recognitionResult}
             imageUri={capturedImageUri}
-            onBack={navigateToHome}
+            onBack={navigateBackFromRecognition}
             onSaveToFavorites={handleSaveToFavorites}
             onCompare={handleAddToCompare}
+            isFromCompare={isAddingToCompare}
           />
         );
       default:
         return (
-          <HomePage
-            onRecognitionResult={handleDirectRecognition}
-            onTextSearch={navigateToSearch}
-            onNavigateToCompare={navigateToCompare}
-          />
+          <View style={pageStyle}>
+            <HomePage
+              onRecognitionResult={handleDirectRecognition}
+              onTextSearch={navigateToSearch}
+              onNavigateToCompare={navigateToCompare}
+            />
+          </View>
         );
     }
   };
@@ -229,22 +254,28 @@ const styles = StyleSheet.create({
   pageContainer: {
     flex: 1,
   },
+  // 为有底部导航栏的页面添加底部间距
+  pageWithBottomNav: {
+    paddingBottom: 90, // 为底部导航栏预留空间
+  },
   // 底部导航栏样式
   bottomNavContainer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    paddingBottom: 40,
+    paddingBottom: 20,
     paddingTop: 24,
+    // 添加渐变背景遮罩
+    backgroundColor: "#726B61",
   },
   bottomNav: {
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
     marginHorizontal: 24,
-    paddingVertical: 16,
+    paddingVertical: 12,
     paddingHorizontal: 4,
     borderRadius: 50,
     shadowColor: "#000",

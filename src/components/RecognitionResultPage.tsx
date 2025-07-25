@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,11 @@ import {
   ScrollView,
   Image,
   StatusBar,
+  Alert,
 } from "react-native";
 import { HeartIcon, StatsIcon, ArrowLeftIcon } from "./SvgIcons";
 import { RecognitionResult } from "../services/apiService";
+import { useCompare } from "../store/CompareStore";
 import RadarChart from "./RadarChart";
 import PriceTrendChart from "./PriceTrendChart";
 
@@ -20,6 +22,7 @@ interface RecognitionResultPageProps {
   onBack?: () => void;
   onSaveToFavorites?: (result: RecognitionResult) => void;
   onCompare?: (result: RecognitionResult) => void;
+  isFromCompare?: boolean; // 标记是否从比较页面发起
 }
 
 const RecognitionResultPage: React.FC<RecognitionResultPageProps> = ({
@@ -28,8 +31,61 @@ const RecognitionResultPage: React.FC<RecognitionResultPageProps> = ({
   onBack,
   onSaveToFavorites,
   onCompare,
+  isFromCompare = false,
 }) => {
+  const { addItem, isItemInCompare, getItemCount, canAddMore } = useCompare();
+  const [isFavorited, setIsFavorited] = useState(false);
   const confidencePercentage = Math.round(result.confidence * 100);
+
+  // 检查当前水果是否已在比较列表中
+  const isInCompare = isItemInCompare(result.name);
+
+  const handleAddToCompare = () => {
+    if (isInCompare) {
+      Alert.alert("已在比较列表", `${result.name} 已经在比较列表中了`, [
+        { text: "确定", style: "default" },
+      ]);
+      return;
+    }
+
+    if (!canAddMore()) {
+      Alert.alert("比较列表已满", "最多只能比较3个水果，请先移除一些项目", [
+        { text: "确定", style: "default" },
+      ]);
+      return;
+    }
+
+    addItem(result);
+
+    if (isFromCompare) {
+      // 如果是从比较页面发起的，添加成功后返回比较页面
+      Alert.alert("添加成功", `${result.name} 已添加到比较列表`, [
+        {
+          text: "返回比较",
+          onPress: () => onBack?.(),
+        },
+      ]);
+    } else {
+      Alert.alert(
+        "添加成功",
+        `${result.name} 已添加到比较列表 (${getItemCount() + 1}/3)`,
+        [{ text: "确定", style: "default" }]
+      );
+    }
+
+    // 调用原有的回调（如果存在）
+    onCompare?.(result);
+  };
+
+  const handleSaveToFavorites = () => {
+    setIsFavorited(!isFavorited);
+    onSaveToFavorites?.(result);
+    Alert.alert(
+      isFavorited ? "取消收藏" : "收藏成功",
+      isFavorited ? `已取消收藏 ${result.name}` : `已收藏 ${result.name}`,
+      [{ text: "确定", style: "default" }]
+    );
+  };
 
   const getFruitEmoji = (name: string) => {
     const fruitName = name.toLowerCase();
@@ -216,11 +272,44 @@ const RecognitionResultPage: React.FC<RecognitionResultPageProps> = ({
         {/* 操作按钮 */}
         <View style={styles.actionsSection}>
           <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={() => onCompare?.(result)}
+            style={styles.secondaryButton}
+            onPress={handleSaveToFavorites}
           >
-            <StatsIcon width={20} height={20} color="#726B61" />
-            <Text style={styles.primaryButtonText}>添加到比较</Text>
+            <HeartIcon
+              width={20}
+              height={20}
+              color="rgba(255, 255, 255, 0.8)"
+            />
+            <Text style={styles.secondaryButtonText}>
+              {isFavorited ? "已收藏" : "收藏"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.primaryButton,
+              isInCompare && styles.primaryButtonDisabled,
+            ]}
+            onPress={handleAddToCompare}
+            disabled={isInCompare}
+          >
+            <StatsIcon
+              width={20}
+              height={20}
+              color={isInCompare ? "rgba(114, 107, 97, 0.5)" : "#726B61"}
+            />
+            <Text
+              style={[
+                styles.primaryButtonText,
+                isInCompare && styles.primaryButtonTextDisabled,
+              ]}
+            >
+              {isInCompare
+                ? "已在比较"
+                : isFromCompare
+                ? "添加到比较"
+                : `添加到比较`}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -354,20 +443,43 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   actionsSection: {
+    flexDirection: "row",
     gap: 12,
     marginTop: 8,
   },
   primaryButton: {
+    flex: 1,
     height: 48,
-    backgroundColor: "#FF6B6B",
+    backgroundColor: "#FDDDDC",
     borderRadius: 24,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 8,
   },
+  primaryButtonDisabled: {
+    backgroundColor: "rgba(253, 221, 220, 0.3)",
+  },
   primaryButtonText: {
-    color: "white",
+    color: "#726B61",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  primaryButtonTextDisabled: {
+    color: "rgba(114, 107, 97, 0.5)",
+  },
+  secondaryButton: {
+    flex: 1,
+    height: 48,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 24,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  secondaryButtonText: {
+    color: "rgba(255, 255, 255, 0.8)",
     fontSize: 16,
     fontWeight: "500",
   },

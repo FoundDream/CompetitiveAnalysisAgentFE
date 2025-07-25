@@ -373,7 +373,7 @@ export const analyzeText = async (
     // 创建请求数据
     const requestData = {
       product_name: fruitLabel.trim(),
-      price: `${price.trim()} 元/斤`,
+      price: `${price.trim()}元/斤`,
     };
 
     if (DEV_CONFIG.LOG_API_CALLS) {

@@ -64,11 +64,11 @@ const SearchPage: React.FC<SearchPageProps> = ({
       // 添加进度提示
       const progressTimer = setTimeout(() => {
         setAnalysisProgress("正在分析水果信息...");
-      }, 2000);
+      }, 1000);
 
       const progressTimer2 = setTimeout(() => {
         setAnalysisProgress("正在生成分析报告...");
-      }, 5000);
+      }, 1000);
 
       const result = await analyzeText(fruitLabel, price);
 
