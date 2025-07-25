@@ -14,7 +14,7 @@ interface DetailPageProps {
   onBack?: () => void;
   onPhotoRecognition?: () => void;
   onCompare?: () => void;
-  onFindStore?: () => void;
+  onEnterCompare?: () => void;
 }
 
 const ParaflowDetailPage: React.FC<DetailPageProps> = ({
@@ -22,7 +22,7 @@ const ParaflowDetailPage: React.FC<DetailPageProps> = ({
   onBack,
   onPhotoRecognition,
   onCompare,
-  onFindStore,
+  onEnterCompare,
 }) => {
   const [selectedTab, setSelectedTab] = useState("产地介绍");
   const [isFavorited, setIsFavorited] = useState(true);
@@ -383,10 +383,10 @@ const ParaflowDetailPage: React.FC<DetailPageProps> = ({
 
           <TouchableOpacity
             style={[styles.bottomActionButton, styles.findStoreButton]}
-            onPress={onFindStore}
+            onPress={onEnterCompare}
           >
             <Text style={styles.findStoreButtonIcon}>🏪</Text>
-            <Text style={styles.findStoreButtonText}>查找商家</Text>
+            <Text style={styles.findStoreButtonText}>查看比较</Text>
           </TouchableOpacity>
         </View>
       </View>

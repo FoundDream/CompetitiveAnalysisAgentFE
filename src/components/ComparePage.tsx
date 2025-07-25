@@ -8,13 +8,19 @@ import {
   ScrollView,
   StatusBar,
 } from "react-native";
+import { HomeIcon, CompareIcon } from "./SvgIcons";
 
 interface ComparePageProps {
   onBack?: () => void;
   onFruitPress?: (fruitName: string) => void;
+  onNavigateToHome?: () => void;
 }
 
-const ComparePage: React.FC<ComparePageProps> = ({ onBack, onFruitPress }) => {
+const ComparePage: React.FC<ComparePageProps> = ({
+  onBack,
+  onFruitPress,
+  onNavigateToHome,
+}) => {
   const [compareList, setCompareList] = useState([
     {
       id: "1",
@@ -131,10 +137,7 @@ const ComparePage: React.FC<ComparePageProps> = ({ onBack, onFruitPress }) => {
       {/* 顶部导航栏 */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity style={styles.headerButton} onPress={handleBack}>
-            <Text style={styles.headerButtonText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>比较页面</Text>
+          <Text style={styles.headerTitle}>对比</Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity
@@ -328,6 +331,29 @@ const ComparePage: React.FC<ComparePageProps> = ({ onBack, onFruitPress }) => {
           </>
         )}
       </ScrollView>
+
+      {/* 底部导航栏 */}
+      <View style={styles.bottomNavContainer}>
+        <View style={styles.bottomNav}>
+          <TouchableOpacity style={styles.navItem} onPress={onNavigateToHome}>
+            <View style={styles.navIconContainer}>
+              <HomeIcon
+                width={20}
+                height={20}
+                color="rgba(255, 255, 255, 0.5)"
+              />
+            </View>
+            <Text style={styles.navText}>首页</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.navItem, styles.activeNavItem]}>
+            <View style={styles.navIconContainer}>
+              <CompareIcon width={24} height={24} color="white" />
+            </View>
+            <Text style={[styles.navText, styles.activeNavText]}>比较</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </SafeAreaView>
   );
 };
@@ -366,10 +392,10 @@ const styles = StyleSheet.create({
     color: "white",
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "300",
+    fontSize: 24,
+    fontWeight: "600",
     color: "white",
-    marginLeft: 12,
+    marginLeft: 0,
   },
   headerRight: {
     flexDirection: "row",
@@ -415,7 +441,6 @@ const styles = StyleSheet.create({
   compareCards: {
     flexDirection: "row",
     gap: 16,
-    paddingBottom: 16,
   },
   compareCard: {
     width: 200,
@@ -525,7 +550,7 @@ const styles = StyleSheet.create({
   },
   comparisonTitle: {
     fontSize: 18,
-    fontWeight: "300",
+    fontWeight: "500",
     color: "white",
     marginBottom: 16,
   },
@@ -639,6 +664,46 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "rgba(255, 255, 255, 0.7)",
     lineHeight: 16,
+  },
+  bottomNavContainer: {
+    marginTop: 24,
+  },
+  bottomNav: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    marginHorizontal: 24,
+    marginBottom: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+    borderRadius: 50,
+    boxShadow:
+      "5px 0 4px -3px rgba(255, 255, 255, 0.6) inset, -5px 0 4px -3px rgba(255, 255, 255, 0.6) inset, 0 15px 40px 0 rgba(0, 0, 0, 0.2)",
+    // @ts-ignore
+    backgroundImage:
+      "radial-gradient(63% 63% at 50% 50%, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 43%, rgba(255, 255, 255, 0.05) 74%, rgba(255, 255, 255, 0.2) 100%)",
+  },
+  navItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  activeNavItem: {
+    // 激活状态样式
+  },
+  navIconContainer: {
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  navText: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.5)",
+  },
+  activeNavText: {
+    color: "white",
   },
 });
 

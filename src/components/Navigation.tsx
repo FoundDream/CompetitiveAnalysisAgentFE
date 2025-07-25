@@ -1,17 +1,27 @@
 import React, { useState } from "react";
 import HomePage from "./HomePage";
 import DetailPage from "./DetailPage";
-import PhotoPage from "./PhotoPage";
 import SearchPage from "./SearchPage";
 import ComparePage from "./ComparePage";
+import CameraPage from "./CameraPage";
+import RecognitionResultPage from "./RecognitionResultPage";
 
-export type PageType = "home" | "detail" | "photo" | "search" | "compare";
+export type PageType =
+  | "home"
+  | "detail"
+  | "photo"
+  | "search"
+  | "compare"
+  | "camera"
+  | "recognition";
 
 interface NavigationProps {}
 
 const Navigation: React.FC<NavigationProps> = () => {
   const [currentPage, setCurrentPage] = useState<PageType>("home");
   const [selectedFruit, setSelectedFruit] = useState<string>("");
+  const [recognitionResult, setRecognitionResult] = useState<any>(null);
+  const [capturedImageUri, setCapturedImageUri] = useState<string>("");
 
   const navigateToDetail = (fruitName: string) => {
     setSelectedFruit(fruitName);
@@ -27,6 +37,25 @@ const Navigation: React.FC<NavigationProps> = () => {
     console.log("导航到拍照识别页面");
   };
 
+  const navigateToCamera = () => {
+    setCurrentPage("camera");
+  };
+
+  const handleRecognitionResult = (result: any, imageUri: string) => {
+    setRecognitionResult(result);
+    setCapturedImageUri(imageUri);
+    setCurrentPage("recognition");
+  };
+
+  const handleSaveToFavorites = (result: any) => {
+    console.log("保存到收藏:", result);
+    // 这里可以实现保存到本地存储的逻辑
+  };
+
+  const handleAddToCompare = () => {
+    console.log("添加到比较");
+  };
+
   const navigateToSearch = () => {
     setCurrentPage("search");
     console.log("导航到文字搜索页面");
@@ -37,8 +66,9 @@ const Navigation: React.FC<NavigationProps> = () => {
     console.log("导航到比较页面");
   };
 
-  const handleFindStore = () => {
-    console.log("查找商家");
+  const handleEnterCompare = () => {
+    console.log("查看比较");
+    navigateToCompare();
   };
 
   // 渲染当前页面
@@ -48,8 +78,9 @@ const Navigation: React.FC<NavigationProps> = () => {
         return (
           <HomePage
             onFruitPress={navigateToDetail}
-            onPhotoRecognition={navigateToPhoto}
+            onPhotoRecognition={navigateToCamera}
             onTextSearch={navigateToSearch}
+            onNavigateToCompare={navigateToCompare}
           />
         );
       case "detail":
@@ -57,15 +88,8 @@ const Navigation: React.FC<NavigationProps> = () => {
           <DetailPage
             fruitName={selectedFruit}
             onBack={navigateToHome}
-            onCompare={navigateToCompare}
-            onFindStore={handleFindStore}
-          />
-        );
-      case "photo":
-        return (
-          <PhotoPage
-            onBack={navigateToHome}
-            onFruitDetected={navigateToDetail}
+            onCompare={handleAddToCompare}
+            onEnterCompare={handleEnterCompare}
           />
         );
       case "search":
@@ -77,13 +101,31 @@ const Navigation: React.FC<NavigationProps> = () => {
           <ComparePage
             onBack={navigateToHome}
             onFruitPress={navigateToDetail}
+            onNavigateToHome={navigateToHome}
+          />
+        );
+      case "camera":
+        return (
+          <CameraPage
+            onBack={navigateToHome}
+            onRecognitionResult={handleRecognitionResult}
+          />
+        );
+      case "recognition":
+        return (
+          <RecognitionResultPage
+            result={recognitionResult}
+            imageUri={capturedImageUri}
+            onBack={navigateToHome}
+            onSaveToFavorites={handleSaveToFavorites}
+            onCompare={handleAddToCompare}
           />
         );
       default:
         return (
           <HomePage
             onFruitPress={navigateToDetail}
-            onPhotoRecognition={navigateToPhoto}
+            onPhotoRecognition={navigateToCamera}
             onTextSearch={navigateToSearch}
           />
         );
