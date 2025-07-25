@@ -31,6 +31,57 @@ const RecognitionResultPage: React.FC<RecognitionResultPageProps> = ({
 }) => {
   const confidencePercentage = Math.round(result.confidence * 100);
 
+  const getFruitEmoji = (name: string) => {
+    const fruitName = name.toLowerCase();
+    if (fruitName.includes("苹果")) return "🍎";
+    if (fruitName.includes("橙") || fruitName.includes("橘")) return "🍊";
+    if (fruitName.includes("芒果")) return "🥭";
+    if (fruitName.includes("牛油果")) return "🥑";
+    if (fruitName.includes("草莓")) return "🍓";
+    if (fruitName.includes("香蕉")) return "🍌";
+    if (fruitName.includes("葡萄")) return "🍇";
+    if (fruitName.includes("蓝莓")) return "🫐";
+    if (fruitName.includes("西瓜")) return "🍉";
+    if (fruitName.includes("桃") || fruitName.includes("蜜桃")) return "🍑";
+    if (fruitName.includes("柠檬")) return "🍋";
+    if (fruitName.includes("樱桃")) return "🍒";
+    return "🍎"; // 默认苹果图标
+  };
+
+  const getPriceBadgeStyle = (status: string) => {
+    switch (status) {
+      case "偏高":
+        return styles.overpriced;
+      case "略高":
+        return styles.slightlyOverpriced;
+      case "正常":
+        return styles.reasonable;
+      case "略低":
+        return styles.slightlyUnderpriced;
+      case "偏低":
+        return styles.underpriced;
+      default:
+        return styles.reasonable;
+    }
+  };
+
+  const getPriceBadgeTextStyle = (status: string) => {
+    switch (status) {
+      case "偏高":
+        return styles.priceBadgeTextOverpriced;
+      case "略高":
+        return styles.priceBadgeTextSlightlyOverpriced;
+      case "正常":
+        return styles.priceBadgeTextReasonable;
+      case "略低":
+        return styles.priceBadgeTextSlightlyUnderpriced;
+      case "偏低":
+        return styles.priceBadgeTextUnderpriced;
+      default:
+        return styles.priceBadgeTextReasonable;
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar
@@ -51,17 +102,26 @@ const RecognitionResultPage: React.FC<RecognitionResultPageProps> = ({
         {/* 图片和基本信息 */}
         <View style={styles.imageSection}>
           <View style={styles.imageContainer}>
-            <Image source={{ uri: imageUri }} style={styles.fruitImage} />
-            <View style={styles.confidenceBadge}>
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} style={styles.fruitImage} />
+            ) : (
+              <View style={styles.defaultImageContainer}>
+                <Text style={styles.defaultImageEmoji}>
+                  {getFruitEmoji(result.name)}
+                </Text>
+                <Text style={styles.textInputLabel}>文字输入</Text>
+              </View>
+            )}
+            {/* <View style={styles.confidenceBadge}>
               <Text style={styles.confidenceText}>{confidencePercentage}%</Text>
-            </View>
+            </View> */}
           </View>
 
           <View style={styles.basicInfo}>
             <Text style={styles.fruitName}>{result.name}</Text>
-            <Text style={styles.confidenceLabel}>
+            {/* <Text style={styles.confidenceLabel}>
               识别准确度: {confidencePercentage}%
-            </Text>
+            </Text> */}
           </View>
         </View>
 
@@ -78,15 +138,22 @@ const RecognitionResultPage: React.FC<RecognitionResultPageProps> = ({
           <Text style={styles.sectionTitle}>价格分析</Text>
           <View style={styles.priceAnalysisCard}>
             <View style={styles.priceHeader}>
-              <Text style={styles.priceValue}>预估: ¥{result.price}</Text>
+              <Text style={styles.priceValue}>
+                预估: ¥{result.market_price_range.split("元")[0] + "元"}
+              </Text>
               <View
                 style={[
                   styles.priceBadge,
-                  result.isOverpriced ? styles.overpriced : styles.reasonable,
+                  getPriceBadgeStyle(result.priceStatus),
                 ]}
               >
-                <Text style={styles.priceBadgeText}>
-                  {result.isOverpriced ? "价格偏高" : "价格合理"}
+                <Text
+                  style={[
+                    styles.priceBadgeText,
+                    getPriceBadgeTextStyle(result.priceStatus),
+                  ]}
+                >
+                  {result.priceStatus}
                 </Text>
               </View>
             </View>
@@ -107,17 +174,12 @@ const RecognitionResultPage: React.FC<RecognitionResultPageProps> = ({
               </View>
             </View>
 
-            <View style={styles.comprehensiveAnalysis}>
-              <Text style={styles.comprehensiveLabel}>综合分析</Text>
-              <Text style={styles.comprehensiveText}>{result.analysis}</Text>
-            </View>
-
             {/* 价格趋势图 */}
             <View style={styles.priceTrendSection}>
               <Text style={styles.priceTrendTitle}>价格趋势</Text>
               <PriceTrendChart
                 data={result.priceTrend}
-                currentPrice={parseFloat(result.price) || 0}
+                currentPrice={parseFloat(result.market_price_range) || 0}
                 width={320}
                 height={180}
               />
@@ -129,30 +191,14 @@ const RecognitionResultPage: React.FC<RecognitionResultPageProps> = ({
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>营养成分 (每100g)</Text>
           <View style={styles.nutritionGrid}>
-            <View style={styles.nutritionItem}>
-              <Text style={styles.nutritionValue}>
-                {result.nutritionFacts.calories}
-              </Text>
-              <Text style={styles.nutritionLabel}>卡路里</Text>
-            </View>
-            <View style={styles.nutritionItem}>
-              <Text style={styles.nutritionValue}>
-                {result.nutritionFacts.vitamin_c}
-              </Text>
-              <Text style={styles.nutritionLabel}>维生素C</Text>
-            </View>
-            <View style={styles.nutritionItem}>
-              <Text style={styles.nutritionValue}>
-                {result.nutritionFacts.fiber}
-              </Text>
-              <Text style={styles.nutritionLabel}>膳食纤维</Text>
-            </View>
-            <View style={styles.nutritionItem}>
-              <Text style={styles.nutritionValue}>
-                {result.nutritionFacts.sugar}
-              </Text>
-              <Text style={styles.nutritionLabel}>糖分</Text>
-            </View>
+            {Object.entries(result.nutritionFacts).map(
+              ([key, value], index) => (
+                <View key={index} style={styles.nutritionItem}>
+                  <Text style={styles.nutritionValue}>{value}</Text>
+                  <Text style={styles.nutritionLabel}>{key}</Text>
+                </View>
+              )
+            )}
           </View>
         </View>
 
@@ -356,6 +402,15 @@ const styles = StyleSheet.create({
   overpriced: {
     backgroundColor: "rgba(239, 68, 68, 0.2)",
   },
+  slightlyOverpriced: {
+    backgroundColor: "rgba(255, 152, 0, 0.2)",
+  },
+  slightlyUnderpriced: {
+    backgroundColor: "rgba(255, 152, 0, 0.2)",
+  },
+  underpriced: {
+    backgroundColor: "rgba(239, 68, 68, 0.2)",
+  },
   priceBadgeText: {
     fontSize: 12,
     fontWeight: "500",
@@ -388,21 +443,6 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.9)",
     lineHeight: 18,
   },
-  comprehensiveAnalysis: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderRadius: 12,
-    padding: 12,
-  },
-  comprehensiveLabel: {
-    fontSize: 12,
-    color: "rgba(255, 255, 255, 0.7)",
-    marginBottom: 4,
-  },
-  comprehensiveText: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.9)",
-    lineHeight: 20,
-  },
   // 口味分析相关样式
   tasteAnalysisCard: {
     backgroundColor: "rgba(255, 255, 255, 0.1)",
@@ -429,6 +469,47 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.9)",
     marginBottom: 12,
     fontWeight: "500",
+  },
+  defaultImageContainer: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "#F3F4F6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  defaultImageEmoji: {
+    fontSize: 80,
+    marginBottom: 8,
+  },
+  textInputLabel: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.7)",
+  },
+  priceBadgeTextOverpriced: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#FF6B6B",
+  },
+  priceBadgeTextSlightlyOverpriced: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#FF9800",
+  },
+  priceBadgeTextReasonable: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#4CAF50",
+  },
+  priceBadgeTextSlightlyUnderpriced: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#FF9800",
+  },
+  priceBadgeTextUnderpriced: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#FF6B6B",
   },
 });
 

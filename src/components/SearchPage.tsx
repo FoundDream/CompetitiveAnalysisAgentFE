@@ -8,17 +8,22 @@ import {
   ScrollView,
   TextInput,
   StatusBar,
+  Alert,
 } from "react-native";
+import { analyzeText, RecognitionResult } from "../services/apiService";
 
 interface SearchPageProps {
   onBack?: () => void;
-  onFruitPress?: (fruitName: string) => void;
+  onRecognitionResult?: (result: RecognitionResult, imageUri: string) => void;
 }
 
-const SearchPage: React.FC<SearchPageProps> = ({ onBack, onFruitPress }) => {
-  const [searchText, setSearchText] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+const SearchPage: React.FC<SearchPageProps> = ({
+  onBack,
+  onRecognitionResult,
+}) => {
+  const [fruitLabel, setFruitLabel] = useState("");
+  const [price, setPrice] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // 预留的功能函数
   const handleBack = () => {
@@ -26,78 +31,58 @@ const SearchPage: React.FC<SearchPageProps> = ({ onBack, onFruitPress }) => {
     onBack?.();
   };
 
-  const handleSearch = () => {
-    if (!searchText.trim()) return;
+  const validateInput = (): boolean => {
+    if (!fruitLabel.trim()) {
+      Alert.alert("提示", "请输入水果名称");
+      return false;
+    }
 
-    setIsSearching(true);
-    console.log("搜索:", searchText);
+    if (!price.trim()) {
+      Alert.alert("提示", "请输入价格");
+      return false;
+    }
 
-    // 模拟搜索过程
-    setTimeout(() => {
-      const mockResults = [
-        {
-          id: "1",
-          name: "红富士苹果",
-          origin: "山东烟台",
-          price: "¥6.8/斤",
-          rating: 4.8,
-          description: "脆甜爽口，汁水丰富",
-          tags: ["脆甜", "新鲜"],
-        },
-        {
-          id: "2",
-          name: "嘎啦苹果",
-          origin: "新疆阿克苏",
-          price: "¥5.2/斤",
-          rating: 4.5,
-          description: "口感清脆，酸甜适中",
-          tags: ["清脆", "酸甜"],
-        },
-        {
-          id: "3",
-          name: "黄元帅苹果",
-          origin: "辽宁",
-          price: "¥4.5/斤",
-          rating: 4.2,
-          description: "果肉松软，香甜可口",
-          tags: ["香甜", "松软"],
-        },
-      ].filter(
-        (item) =>
-          item.name.includes(searchText) ||
-          (searchText.includes("苹果") && item.name.includes("苹果"))
+    // 验证价格格式（支持小数）
+    const priceRegex = /^\d+(\.\d{1,2})?$/;
+    if (!priceRegex.test(price.trim())) {
+      Alert.alert("提示", "请输入正确的价格格式（如：10.5）");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleAnalyze = async () => {
+    if (!validateInput()) return;
+
+    setIsAnalyzing(true);
+    console.log("开始文字识别:", { fruitLabel, price });
+
+    try {
+      const result = await analyzeText(fruitLabel, price);
+      console.log("识别成功:", result);
+
+      // 由于是文字输入，没有实际图片，使用空字符串作为imageUri
+      onRecognitionResult?.(result, "");
+    } catch (error) {
+      console.error("识别失败:", error);
+      Alert.alert(
+        "识别失败",
+        error instanceof Error ? error.message : "请检查网络连接后重试"
       );
-
-      setSearchResults(mockResults);
-      setIsSearching(false);
-    }, 1500);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
-  const handleClearSearch = () => {
-    setSearchText("");
-    setSearchResults([]);
+  const handleClearInput = () => {
+    setFruitLabel("");
+    setPrice("");
   };
 
-  const handleResultPress = (fruitName: string) => {
-    console.log("选择水果:", fruitName);
-    onFruitPress?.(fruitName);
-  };
-
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, index) => (
-      <Text key={index} style={styles.star}>
-        {index < Math.floor(rating) ? "⭐" : "☆"}
-      </Text>
-    ));
-  };
-
-  const getFruitEmoji = (name: string) => {
-    if (name.includes("苹果")) return "🍎";
-    if (name.includes("橙") || name.includes("橘")) return "🍊";
-    if (name.includes("芒果")) return "🥭";
-    if (name.includes("牛油果")) return "🥑";
-    if (name.includes("草莓")) return "🍓";
-    return "🍎";
+  const handleQuickInput = (fruit: string, defaultPrice: string) => {
+    setFruitLabel(fruit);
+    setPrice(defaultPrice);
   };
 
   return (
@@ -114,144 +99,138 @@ const SearchPage: React.FC<SearchPageProps> = ({ onBack, onFruitPress }) => {
           <TouchableOpacity style={styles.headerButton} onPress={handleBack}>
             <Text style={styles.headerButtonText}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>文字搜索</Text>
+          <Text style={styles.headerTitle}>文字识别</Text>
         </View>
       </View>
 
-      {/* 搜索区域 */}
-      <View style={styles.searchSection}>
-        <View style={styles.searchContainer}>
-          <View style={styles.searchInputContainer}>
-            <Text style={styles.searchIcon}>🔍</Text>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="输入水果名称或品种"
-              placeholderTextColor="rgba(255, 255, 255, 0.5)"
-              value={searchText}
-              onChangeText={setSearchText}
-              onSubmitEditing={handleSearch}
-              returnKeyType="search"
-            />
-            {searchText.length > 0 && (
-              <TouchableOpacity onPress={handleClearSearch}>
-                <Text style={styles.clearIcon}>✕</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          <TouchableOpacity
-            style={[styles.searchButton, isSearching && styles.searchingButton]}
-            onPress={handleSearch}
-            disabled={isSearching || !searchText.trim()}
-          >
-            <Text style={styles.searchButtonText}>
-              {isSearching ? "⏳" : "搜索"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* 热门搜索 */}
-        <View style={styles.hotSearchContainer}>
-          <Text style={styles.hotSearchTitle}>热门搜索</Text>
-          <View style={styles.hotSearchTags}>
-            {["苹果", "橙子", "香蕉", "葡萄", "草莓", "芒果"].map(
-              (tag, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.hotSearchTag}
-                  onPress={() => {
-                    setSearchText(tag);
-                    handleSearch();
-                  }}
-                >
-                  <Text style={styles.hotSearchTagText}>{tag}</Text>
-                </TouchableOpacity>
-              )
-            )}
-          </View>
-        </View>
-      </View>
-
-      {/* 搜索结果 */}
       <ScrollView
-        style={styles.resultsContainer}
+        style={styles.content}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {isSearching ? (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingIcon}>⏳</Text>
-            <Text style={styles.loadingText}>正在搜索...</Text>
-          </View>
-        ) : searchResults.length > 0 ? (
-          <>
-            <View style={styles.resultsHeader}>
-              <Text style={styles.resultsCount}>
-                找到 {searchResults.length} 个结果
-              </Text>
-              <TouchableOpacity>
-                <Text style={styles.sortButton}>排序 ↕️</Text>
-              </TouchableOpacity>
-            </View>
+        {/* 输入说明 */}
+        <View style={styles.instructionSection}>
+          <Text style={styles.instructionTitle}>输入水果信息</Text>
+          <Text style={styles.instructionText}>
+            请输入水果名称和价格，我们将为您提供专业的分析
+          </Text>
+        </View>
 
-            <View style={styles.resultsList}>
-              {searchResults.map((result) => (
-                <TouchableOpacity
-                  key={result.id}
-                  style={styles.resultItem}
-                  onPress={() => handleResultPress(result.name)}
-                >
-                  <View style={styles.resultImageContainer}>
-                    <Text style={styles.resultEmoji}>
-                      {getFruitEmoji(result.name)}
-                    </Text>
-                  </View>
-
-                  <View style={styles.resultContent}>
-                    <View style={styles.resultHeader}>
-                      <Text style={styles.resultName}>{result.name}</Text>
-                      <Text style={styles.resultPrice}>{result.price}</Text>
-                    </View>
-
-                    <Text style={styles.resultOrigin}>{result.origin}</Text>
-                    <Text style={styles.resultDescription}>
-                      {result.description}
-                    </Text>
-
-                    <View style={styles.resultFooter}>
-                      <View style={styles.resultRating}>
-                        <View style={styles.starsContainer}>
-                          {renderStars(result.rating)}
-                        </View>
-                        <Text style={styles.ratingText}>{result.rating}</Text>
-                      </View>
-
-                      <View style={styles.resultTags}>
-                        {result.tags.map((tag: string, index: number) => (
-                          <View key={index} style={styles.resultTag}>
-                            <Text style={styles.resultTagText}>{tag}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  </View>
+        {/* 输入区域 */}
+        <View style={styles.inputSection}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>水果名称</Text>
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputIcon}>🍎</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="例如：红富士苹果"
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                value={fruitLabel}
+                onChangeText={setFruitLabel}
+                returnKeyType="next"
+              />
+              {fruitLabel.length > 0 && (
+                <TouchableOpacity onPress={() => setFruitLabel("")}>
+                  <Text style={styles.clearIcon}>✕</Text>
                 </TouchableOpacity>
-              ))}
+              )}
             </View>
-          </>
-        ) : searchText.length > 0 && !isSearching ? (
-          <View style={styles.noResultsContainer}>
-            <Text style={styles.noResultsIcon}>🔍</Text>
-            <Text style={styles.noResultsText}>未找到相关结果</Text>
-            <Text style={styles.noResultsSubText}>
-              试试其他关键词或检查拼写
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>价格 (元/斤)</Text>
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputIcon}>💰</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="例如：8.5"
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                value={price}
+                onChangeText={setPrice}
+                keyboardType="decimal-pad"
+                returnKeyType="done"
+              />
+              {price.length > 0 && (
+                <TouchableOpacity onPress={() => setPrice("")}>
+                  <Text style={styles.clearIcon}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* 操作按钮 */}
+          <View style={styles.buttonGroup}>
+            <TouchableOpacity
+              style={[
+                styles.analyzeButton,
+                isAnalyzing && styles.analyzingButton,
+              ]}
+              onPress={handleAnalyze}
+              disabled={isAnalyzing || !fruitLabel.trim() || !price.trim()}
+            >
+              <Text style={styles.analyzeButtonText}>
+                {isAnalyzing ? "分析中..." : "开始分析"}
+              </Text>
+              {isAnalyzing && <Text style={styles.loadingIcon}>⏳</Text>}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={handleClearInput}
+            >
+              <Text style={styles.clearButtonText}>清空输入</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 快速输入 */}
+        <View style={styles.quickInputSection}>
+          <Text style={styles.quickInputTitle}>快速输入</Text>
+          <Text style={styles.quickInputSubtitle}>
+            点击下方选项快速填入常见水果
+          </Text>
+
+          <View style={styles.quickInputGrid}>
+            {[
+              { name: "红富士苹果", price: "8.5", emoji: "🍎" },
+              { name: "脐橙", price: "6.8", emoji: "🍊" },
+              { name: "香蕉", price: "5.2", emoji: "🍌" },
+              { name: "芒果", price: "12.0", emoji: "🥭" },
+              { name: "草莓", price: "15.8", emoji: "🍓" },
+              { name: "蓝莓", price: "25.0", emoji: "🫐" },
+            ].map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.quickInputItem}
+                onPress={() => handleQuickInput(item.name, item.price)}
+              >
+                <Text style={styles.quickInputEmoji}>{item.emoji}</Text>
+                <Text style={styles.quickInputName}>{item.name}</Text>
+                <Text style={styles.quickInputPrice}>¥{item.price}/斤</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* 提示信息 */}
+        <View style={styles.tipsSection}>
+          <Text style={styles.tipsTitle}>💡 使用提示</Text>
+          <View style={styles.tipsList}>
+            <Text style={styles.tipItem}>
+              • 请输入具体的水果品种，如"红富士苹果"而非"苹果"
+            </Text>
+            <Text style={styles.tipItem}>
+              • 价格请输入当前市场价格，支持小数点后两位
+            </Text>
+            <Text style={styles.tipItem}>
+              • 我们将基于您的输入提供专业的价格和品质分析
             </Text>
           </View>
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>🍎</Text>
-            <Text style={styles.emptyText}>输入水果名称开始搜索</Text>
-            <Text style={styles.emptySubText}>支持模糊搜索和智能联想</Text>
-          </View>
-        )}
+        </View>
+
+        {/* 底部间距 */}
+        <View style={styles.bottomSpacing} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -261,11 +240,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#726B61",
-  },
-  time: {
-    fontSize: 14,
-    fontWeight: "normal",
-    color: "white",
   },
   header: {
     flexDirection: "row",
@@ -296,30 +270,51 @@ const styles = StyleSheet.create({
     color: "white",
     marginLeft: 12,
   },
-  searchSection: {
-    paddingHorizontal: 24,
-    paddingBottom: 20,
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-    gap: 12,
-  },
-  searchInputContainer: {
+  content: {
     flex: 1,
+    paddingHorizontal: 24,
+  },
+  instructionSection: {
+    marginBottom: 32,
+    alignItems: "center",
+  },
+  instructionTitle: {
+    fontSize: 24,
+    fontWeight: "300",
+    color: "white",
+    marginBottom: 8,
+  },
+  instructionText: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  inputSection: {
+    marginBottom: 32,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    color: "white",
+    fontWeight: "300",
+    marginBottom: 8,
+  },
+  inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 24,
     paddingHorizontal: 16,
-    height: 48,
+    height: 56,
   },
-  searchIcon: {
-    fontSize: 18,
+  inputIcon: {
+    fontSize: 20,
     marginRight: 12,
   },
-  searchInput: {
+  textInput: {
     flex: 1,
     fontSize: 16,
     color: "white",
@@ -330,204 +325,105 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.7)",
     padding: 4,
   },
-  searchButton: {
-    backgroundColor: "rgba(253, 221, 220, 0.8)",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    minWidth: 80,
-    alignItems: "center",
-  },
-  searchingButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
-  },
-  searchButtonText: {
-    fontSize: 16,
-    color: "#370B0B",
-    fontWeight: "300",
-  },
-  hotSearchContainer: {
+  buttonGroup: {
+    gap: 12,
     marginTop: 8,
   },
-  hotSearchTitle: {
-    fontSize: 14,
-    color: "white",
-    fontWeight: "300",
-    marginBottom: 12,
-  },
-  hotSearchTags: {
+  analyzeButton: {
+    backgroundColor: "rgba(253, 221, 220, 0.9)",
+    height: 56,
+    borderRadius: 28,
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  hotSearchTag: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  hotSearchTagText: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
-    fontWeight: "300",
-  },
-  resultsContainer: {
-    flex: 1,
-    paddingHorizontal: 24,
-  },
-  loadingContainer: {
-    alignItems: "center",
-    paddingVertical: 60,
-  },
-  loadingIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: "white",
-    fontWeight: "300",
-  },
-  resultsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  resultsCount: {
-    fontSize: 14,
-    color: "white",
-    fontWeight: "300",
-  },
-  sortButton: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.7)",
-    fontWeight: "300",
-  },
-  resultsList: {
-    gap: 16,
-  },
-  resultItem: {
-    flexDirection: "row",
-    backgroundColor: "rgba(41, 36, 33, 0.1)",
-    borderRadius: 22,
-    padding: 16,
-  },
-  resultImageContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    gap: 8,
   },
-  resultEmoji: {
-    fontSize: 32,
+  analyzingButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
   },
-  resultContent: {
-    flex: 1,
+  analyzeButtonText: {
+    fontSize: 18,
+    color: "#370B0B",
+    fontWeight: "500",
   },
-  resultHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  loadingIcon: {
+    fontSize: 16,
+  },
+  clearButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
     alignItems: "center",
+  },
+  clearButtonText: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "300",
+  },
+  quickInputSection: {
+    marginBottom: 32,
+  },
+  quickInputTitle: {
+    fontSize: 18,
+    color: "white",
+    fontWeight: "300",
     marginBottom: 4,
   },
-  resultName: {
-    fontSize: 16,
-    fontWeight: "300",
+  quickInputSubtitle: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.7)",
+    marginBottom: 16,
+  },
+  quickInputGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  quickInputItem: {
+    width: "47%",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+  },
+  quickInputEmoji: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  quickInputName: {
+    fontSize: 14,
     color: "white",
-  },
-  resultPrice: {
-    fontSize: 16,
     fontWeight: "300",
-    color: "#FDDDDC",
+    marginBottom: 4,
+    textAlign: "center",
   },
-  resultOrigin: {
+  quickInputPrice: {
     fontSize: 12,
     color: "rgba(255, 255, 255, 0.7)",
-    marginBottom: 6,
   },
-  resultDescription: {
+  tipsSection: {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+  },
+  tipsTitle: {
+    fontSize: 16,
+    color: "white",
+    fontWeight: "300",
+    marginBottom: 12,
+  },
+  tipsList: {
+    gap: 8,
+  },
+  tipItem: {
     fontSize: 14,
     color: "rgba(255, 255, 255, 0.8)",
-    marginBottom: 12,
     lineHeight: 20,
   },
-  resultFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  resultRating: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  starsContainer: {
-    flexDirection: "row",
-    marginRight: 6,
-  },
-  star: {
-    fontSize: 12,
-    color: "#FDDDDC",
-  },
-  ratingText: {
-    fontSize: 12,
-    color: "white",
-    fontWeight: "300",
-  },
-  resultTags: {
-    flexDirection: "row",
-    gap: 6,
-  },
-  resultTag: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  resultTagText: {
-    fontSize: 10,
-    color: "rgba(255, 255, 255, 0.8)",
-  },
-  noResultsContainer: {
-    alignItems: "center",
-    paddingVertical: 60,
-  },
-  noResultsIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  noResultsText: {
-    fontSize: 18,
-    color: "white",
-    fontWeight: "300",
-    marginBottom: 8,
-  },
-  noResultsSubText: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.7)",
-    textAlign: "center",
-  },
-  emptyContainer: {
-    alignItems: "center",
-    paddingVertical: 60,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 18,
-    color: "white",
-    fontWeight: "300",
-    marginBottom: 8,
-  },
-  emptySubText: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.7)",
-    textAlign: "center",
+  bottomSpacing: {
+    height: 40,
   },
 });
 

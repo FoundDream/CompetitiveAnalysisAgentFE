@@ -9,6 +9,7 @@ import {
   StatusBar,
   Alert,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
@@ -46,6 +47,7 @@ const HomePage: React.FC<HomePageProps> = ({
   const [facing, setFacing] = useState<CameraType>("back");
   const [permission, requestPermission] = useCameraPermissions();
   const [isRecognizing, setIsRecognizing] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
   useEffect(() => {
@@ -63,7 +65,11 @@ const HomePage: React.FC<HomePageProps> = ({
       const errorMessage =
         error instanceof Error ? error.message : "识别失败，请重试";
       Alert.alert("识别失败", errorMessage, [
-        { text: "取消", style: "cancel" },
+        {
+          text: "取消",
+          style: "cancel",
+          onPress: () => setCapturedImage(null),
+        },
         { text: "重试", onPress: () => recognizeImage(imageUri) },
       ]);
       console.error("识别错误:", error);
@@ -80,6 +86,7 @@ const HomePage: React.FC<HomePageProps> = ({
           base64: false,
         });
         if (photo) {
+          setCapturedImage(photo.uri);
           await recognizeImage(photo.uri);
         }
       } catch (error) {
@@ -101,12 +108,18 @@ const HomePage: React.FC<HomePageProps> = ({
       });
 
       if (!result.canceled && result.assets[0]) {
+        setCapturedImage(result.assets[0].uri);
         await recognizeImage(result.assets[0].uri);
       }
     } catch (error) {
       Alert.alert("错误", "选择图片失败");
       console.error("选择图片错误:", error);
     }
+  };
+
+  const retakePhoto = () => {
+    setCapturedImage(null);
+    setIsRecognizing(false);
   };
 
   // 权限检查
@@ -161,14 +174,29 @@ const HomePage: React.FC<HomePageProps> = ({
           </TouchableOpacity>
         </View>
       </View>
+
       {/* 摄像头预览区域 */}
       <View style={styles.cameraContainer}>
-        <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
-          <View style={styles.cameraOverlay}>
-            <View style={styles.focusArea} />
-            <Text style={styles.instructionText}>将水果放在框内拍照识别</Text>
+        {capturedImage ? (
+          // 显示拍摄的照片
+          <View style={styles.imagePreviewContainer}>
+            <Image
+              source={{ uri: capturedImage }}
+              style={styles.previewImage}
+            />
+            <View style={styles.imageOverlay}>
+              <Text style={styles.previewText}>已拍摄照片</Text>
+            </View>
           </View>
-        </CameraView>
+        ) : (
+          // 显示实时摄像头画面
+          <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
+            <View style={styles.cameraOverlay}>
+              <View style={styles.focusArea} />
+              <Text style={styles.instructionText}>将水果放在框内拍照识别</Text>
+            </View>
+          </CameraView>
+        )}
 
         {/* 识别中遮罩 */}
         {isRecognizing && (
@@ -185,19 +213,35 @@ const HomePage: React.FC<HomePageProps> = ({
           <TouchableOpacity
             style={styles.galleryButton}
             onPress={selectFromGallery}
+            disabled={isRecognizing}
           >
             <Text style={styles.galleryButtonText}>相册</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
-            <View style={styles.captureButtonInner} />
-          </TouchableOpacity>
+          {capturedImage ? (
+            <TouchableOpacity
+              style={styles.retakeButton}
+              onPress={retakePhoto}
+              disabled={isRecognizing}
+            >
+              <Text style={styles.retakeButtonText}>重拍</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.captureButton}
+              onPress={takePicture}
+              disabled={isRecognizing}
+            >
+              <View style={styles.captureButtonInner} />
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={styles.flipButton}
             onPress={() =>
               setFacing((current) => (current === "back" ? "front" : "back"))
             }
+            disabled={isRecognizing || !!capturedImage}
           >
             <Text style={styles.flipButtonText}>翻转</Text>
           </TouchableOpacity>
@@ -211,37 +255,13 @@ const HomePage: React.FC<HomePageProps> = ({
           <SearchIcon width={20} height={20} color="white" />
           <Text style={styles.textSearchText}>文字搜索</Text>
         </TouchableOpacity>
-
         <View style={styles.powerTextContainer}>
-          <Text style={styles.powerText}>Powered by KIMI/MINIMAX AI</Text>
+          <Text style={styles.powerText}>POWERED BY KIMI/MINIMAX AI</Text>
         </View>
       </View>
 
-      {/* 底部导航栏 */}
-      <View style={styles.bottomNavContainer}>
-        <View style={styles.bottomNav}>
-          <TouchableOpacity style={[styles.navItem, styles.activeNavItem]}>
-            <View style={styles.navIconContainer}>
-              <HomeIcon width={24} height={24} color="white" />
-            </View>
-            <Text style={[styles.navText, styles.activeNavText]}>首页</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.navItem}
-            onPress={onNavigateToCompare}
-          >
-            <View style={styles.navIconContainer}>
-              <CompareIcon
-                width={20}
-                height={20}
-                color="rgba(255, 255, 255, 0.5)"
-              />
-            </View>
-            <Text style={styles.navText}>比较</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      {/* 底部间距，为统一导航栏留出空间 */}
+      <View style={styles.bottomSpacing} />
     </SafeAreaView>
   );
 };
@@ -279,9 +299,11 @@ const styles = StyleSheet.create({
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    marginTop: 12,
   },
   powerText: {
-    fontSize: 14,
+    fontSize: 10,
+    fontWeight: "500",
     color: "white",
   },
   title: {
@@ -353,52 +375,13 @@ const styles = StyleSheet.create({
   },
   searchActionText: {
     fontSize: 16,
-    fontWeight: "300",
+    fontWeight: "600",
     color: "white", // 白色文字（用于透明按钮）
   },
   bottomSpacing: {
-    height: 40,
+    height: 100, // 为底部导航栏留出空间
   },
-  bottomNavContainer: {
-    marginTop: 24,
-  },
-  bottomNav: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    marginHorizontal: 24,
-    marginBottom: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 4,
-    borderRadius: 50,
-    boxShadow:
-      "5px 0 4px -3px rgba(255, 255, 255, 0.6) inset, -5px 0 4px -3px rgba(255, 255, 255, 0.6) inset, 0 15px 40px 0 rgba(0, 0, 0, 0.2)",
-    // @ts-ignore
-    backgroundImage:
-      "radial-gradient(63% 63% at 50% 50%, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 43%, rgba(255, 255, 255, 0.05) 74%, rgba(255, 255, 255, 0.2) 100%)",
-  },
-  navItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  activeNavItem: {
-    // 激活状态样式
-  },
-  navIconContainer: {
-    width: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  navText: {
-    fontSize: 12,
-    color: "rgba(255, 255, 255, 0.5)",
-  },
-  activeNavText: {
-    color: "white",
-  },
+
   // 权限和加载相关样式
   loadingContainer: {
     flex: 1,
@@ -488,6 +471,7 @@ const styles = StyleSheet.create({
   galleryButtonText: {
     color: "white",
     fontSize: 14,
+    fontWeight: "600",
   },
   captureButton: {
     width: 80,
@@ -498,6 +482,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 4,
     borderColor: "white",
+    fontWeight: "600",
   },
   captureButtonInner: {
     width: 60,
@@ -516,6 +501,7 @@ const styles = StyleSheet.create({
   flipButtonText: {
     color: "white",
     fontSize: 14,
+    fontWeight: "600",
   },
   // 识别状态相关样式
   recognizingOverlay: {
@@ -543,10 +529,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 24,
-    marginTop: 12,
     gap: 8,
   },
   textSearchText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  // 照片预览样式
+  imagePreviewContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#000", // 黑色背景
+  },
+  previewImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "contain",
+  },
+  imageOverlay: {
+    position: "absolute",
+    bottom: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  previewText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "500",
+  },
+  retakeButton: {
+    width: 80,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "white",
+  },
+  retakeButtonText: {
     color: "white",
     fontSize: 14,
     fontWeight: "500",

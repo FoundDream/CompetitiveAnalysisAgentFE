@@ -12,15 +12,26 @@ export interface ApiAnalysisResult {
   disadvantage_analysis: string;
   user_profile_analysis: string;
   analysis: string;
+  // 新增口味相关字段
+  fresh_level?: string;
+  sweet_level?: string;
+  sour_level?: string;
+  water_level?: string;
+  crisp_level?: string;
+  // 新增价格趋势字段
+  price_trend?: string;
+  market_price_range?: string;
+  // 新增营养成分分析字段
+  nutrition_analysis?: { [key: string]: string };
 }
 
 // 口味分析数据结构
 export interface TasteProfile {
-  sweetness: number; // 甜度 (0-10)
-  acidity: number; // 酸度 (0-10)
-  moisture: number; // 水分 (0-10)
-  crispness: number; // 脆度 (0-10)
-  freshness: number; // 新鲜程度 (0-10)
+  sweetness: number; // 甜度 (0-5)
+  acidity: number; // 酸度 (0-5)
+  moisture: number; // 水分 (0-5)
+  crispness: number; // 脆度 (0-5)
+  freshness: number; // 新鲜程度 (0-5)
 }
 
 // 价格趋势数据结构
@@ -35,57 +46,65 @@ export interface RecognitionResult {
   confidence: number;
   description: string;
   price: string;
-  isOverpriced: boolean;
+  priceStatus: string; // 价格状态：偏高、略高、正常、略低、偏低
   priceAnalysis: string;
   advantageAnalysis: string;
   disadvantageAnalysis: string;
   userProfileAnalysis: string;
   analysis: string;
-  // 保留原有的营养信息结构以兼容现有页面
-  nutritionFacts: {
-    calories: number;
-    vitamin_c: string;
-    fiber: string;
-    sugar: string;
-  };
+  // 营养信息改为动态结构
+  nutritionFacts: { [key: string]: string };
   tips: string[];
   // 新增口味分析
   tasteProfile: TasteProfile;
   // 新增价格趋势
   priceTrend: PriceTrendData[];
+  market_price_range: string;
 }
 
-// 默认营养信息（基于产品名称推测）
-const getDefaultNutritionFacts = (productName: string) => {
+// 从API数据生成营养信息，如果API没有返回则使用默认值
+const getNutritionFactsFromApi = (
+  apiResult: ApiAnalysisResult,
+  productName: string
+): { [key: string]: string } => {
+  // 如果API返回了营养分析数据，则使用API数据
+  if (
+    apiResult.nutrition_analysis &&
+    Object.keys(apiResult.nutrition_analysis).length > 0
+  ) {
+    return apiResult.nutrition_analysis;
+  }
+
+  // 如果API没有返回营养数据，则使用基于产品名称的默认值
   const name = productName.toLowerCase();
 
   if (name.includes("苹果")) {
     return {
-      calories: 52,
-      vitamin_c: "4.6mg",
-      fiber: "2.4g",
-      sugar: "10.4g",
+      卡路里: "52",
+      维生素C: "4.6mg",
+      膳食纤维: "2.4g",
+      糖分: "10.4g",
     };
   } else if (name.includes("橙") || name.includes("橘")) {
     return {
-      calories: 47,
-      vitamin_c: "53.2mg",
-      fiber: "2.4g",
-      sugar: "9.4g",
+      卡路里: "47",
+      维生素C: "53.2mg",
+      膳食纤维: "2.4g",
+      糖分: "9.4g",
     };
   } else if (name.includes("芒果")) {
     return {
-      calories: 60,
-      vitamin_c: "36.4mg",
-      fiber: "1.6g",
-      sugar: "13.7g",
+      卡路里: "60",
+      维生素C: "36.4mg",
+      膳食纤维: "1.6g",
+      糖分: "13.7g",
     };
   } else {
     return {
-      calories: 50,
-      vitamin_c: "10mg",
-      fiber: "2g",
-      sugar: "10g",
+      卡路里: "50",
+      维生素C: "10mg",
+      膳食纤维: "2g",
+      糖分: "10g",
     };
   }
 };
@@ -117,115 +136,89 @@ const getDefaultTips = (productName: string): string[] => {
   }
 };
 
-// 默认口味分析（基于产品名称推测）
-const getDefaultTasteProfile = (productName: string): TasteProfile => {
-  const name = productName.toLowerCase();
-
-  if (name.includes("苹果")) {
+// 从API数据生成口味分析，如果API没有返回则使用默认值
+const getTasteProfileFromApi = (
+  apiResult: ApiAnalysisResult,
+  productName: string
+): TasteProfile => {
+  // 如果API返回了口味数据，则使用API数据
+  if (
+    apiResult.sweet_level &&
+    apiResult.sour_level &&
+    apiResult.water_level &&
+    apiResult.crisp_level &&
+    apiResult.fresh_level
+  ) {
     return {
-      sweetness: 7.5,
-      acidity: 4.2,
-      moisture: 8.1,
-      crispness: 9.0,
-      freshness: 8.5,
-    };
-  } else if (name.includes("橙") || name.includes("橘")) {
-    return {
-      sweetness: 6.8,
-      acidity: 7.5,
-      moisture: 8.8,
-      crispness: 3.5,
-      freshness: 8.2,
-    };
-  } else if (name.includes("芒果")) {
-    return {
-      sweetness: 8.5,
-      acidity: 2.8,
-      moisture: 8.3,
-      crispness: 2.0,
-      freshness: 7.8,
-    };
-  } else if (name.includes("蓝莓")) {
-    return {
-      sweetness: 6.2,
-      acidity: 5.8,
-      moisture: 7.5,
-      crispness: 4.5,
-      freshness: 8.0,
-    };
-  } else if (name.includes("牛油果")) {
-    return {
-      sweetness: 2.5,
-      acidity: 1.8,
-      moisture: 6.5,
-      crispness: 1.5,
-      freshness: 7.5,
-    };
-  } else if (name.includes("草莓")) {
-    return {
-      sweetness: 7.8,
-      acidity: 6.2,
-      moisture: 9.0,
-      crispness: 3.8,
-      freshness: 8.8,
-    };
-  } else {
-    return {
-      sweetness: 6.0,
-      acidity: 4.0,
-      moisture: 7.0,
-      crispness: 5.0,
-      freshness: 7.5,
+      sweetness: parseFloat(apiResult.sweet_level) || 0,
+      acidity: parseFloat(apiResult.sour_level) || 0,
+      moisture: parseFloat(apiResult.water_level) || 0,
+      crispness: parseFloat(apiResult.crisp_level) || 0,
+      freshness: parseFloat(apiResult.fresh_level) || 0,
     };
   }
+
+  return {
+    sweetness: 0,
+    acidity: 0,
+    moisture: 0,
+    crispness: 0,
+    freshness: 0,
+  };
 };
 
-// 生成价格趋势数据（基于产品名称和当前价格模拟）
-const generatePriceTrend = (
+// 处理价格状态
+const getPriceStatus = (isOverpriced: string): string => {
+  if (!isOverpriced) return "正常";
+
+  const status = isOverpriced.toLowerCase();
+
+  // 如果后端返回的是具体的状态文本
+  if (status.includes("偏高")) return "偏高";
+  if (status.includes("略高")) return "略高";
+  if (status.includes("偏低")) return "偏低";
+  if (status.includes("略低")) return "略低";
+  if (status.includes("正常")) return "正常";
+
+  // 兼容原有的true/false格式
+  if (status === "true") return "偏高";
+  if (status === "false") return "正常";
+
+  // 默认返回正常
+  return "正常";
+};
+
+// 从API数据生成价格趋势，如果API没有返回则使用模拟数据
+const generatePriceTrendFromApi = (
+  apiResult: ApiAnalysisResult,
   productName: string,
   currentPrice: string
 ): PriceTrendData[] => {
-  const price = parseFloat(currentPrice) || 10.0;
-  const trend: PriceTrendData[] = [];
-  const today = new Date();
+  // 如果API返回了价格趋势数据，则解析并使用
+  if (apiResult.price_trend) {
+    try {
+      const priceArray = JSON.parse(apiResult.price_trend) as number[];
+      const trend: PriceTrendData[] = [];
+      const today = new Date();
 
-  // 生成过去30天的价格数据
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
+      // 生成最近6个月的标签（从当前月往前推）
+      for (let i = 0; i < priceArray.length; i++) {
+        const monthsAgo = priceArray.length - 1 - i;
+        const date = new Date(today);
+        date.setMonth(date.getMonth() - monthsAgo);
 
-    // 基于产品特性生成价格波动
-    let variation = 0;
-    const name = productName.toLowerCase();
+        trend.push({
+          date: date.toISOString().split("T")[0],
+          price: priceArray[i],
+        });
+      }
 
-    if (name.includes("苹果")) {
-      // 苹果价格相对稳定，小幅波动
-      variation = (Math.random() - 0.5) * 0.4 + Math.sin(i / 10) * 0.3;
-    } else if (name.includes("橙") || name.includes("橘")) {
-      // 柑橘类季节性波动较大
-      variation = (Math.random() - 0.5) * 0.6 + Math.cos(i / 8) * 0.5;
-    } else if (name.includes("芒果")) {
-      // 芒果价格波动较大
-      variation = (Math.random() - 0.5) * 0.8 + Math.sin(i / 12) * 0.4;
-    } else if (name.includes("草莓")) {
-      // 草莓价格变化明显
-      variation = (Math.random() - 0.5) * 1.0 + Math.cos(i / 6) * 0.6;
-    } else {
-      // 默认波动
-      variation = (Math.random() - 0.5) * 0.5 + Math.sin(i / 15) * 0.2;
+      return trend;
+    } catch (error) {
+      console.warn("解析价格趋势数据失败:", error);
     }
-
-    // 添加整体趋势（最近价格略有上涨）
-    const trendFactor = ((30 - i) / 30) * 0.1;
-    const historicalPrice = price * (1 - 0.05 + variation + trendFactor);
-
-    trend.push({
-      date: date.toISOString().split("T")[0],
-      price: Math.max(0.1, parseFloat(historicalPrice.toFixed(1))),
-    });
   }
-
-  return trend;
+  return [];
 };
 
 // 图片分析API调用
@@ -261,7 +254,7 @@ export const analyzeImage = async (
     // 发送API请求
     // React Native中不需要手动设置Content-Type，FormData会自动处理
     const response = await axios.post<ApiAnalysisResult>(
-      getApiUrl("/analyze"),
+      getApiUrl("/analyze_image"),
       formData,
       {
         timeout: API_CONFIG.TIMEOUT,
@@ -286,19 +279,24 @@ export const analyzeImage = async (
       confidence: 0.9, // API没有返回置信度，设置默认值
       description: apiResult.description,
       price: apiResult.price || "未知", // 处理price为null的情况
-      isOverpriced: apiResult.is_overpriced === "true",
+      priceStatus: getPriceStatus(apiResult.is_overpriced),
       priceAnalysis: apiResult.price_analysis,
       advantageAnalysis: apiResult.advantage_analysis,
       disadvantageAnalysis: apiResult.disadvantage_analysis,
       userProfileAnalysis: apiResult.user_profile_analysis,
       analysis: apiResult.analysis,
-      nutritionFacts: getDefaultNutritionFacts(apiResult.product_name),
+      nutritionFacts: getNutritionFactsFromApi(
+        apiResult,
+        apiResult.product_name
+      ),
       tips: getDefaultTips(apiResult.product_name),
-      tasteProfile: getDefaultTasteProfile(apiResult.product_name),
-      priceTrend: generatePriceTrend(
+      tasteProfile: getTasteProfileFromApi(apiResult, apiResult.product_name),
+      priceTrend: generatePriceTrendFromApi(
+        apiResult,
         apiResult.product_name,
         apiResult.price || "10.0"
       ),
+      market_price_range: apiResult.market_price_range || "未知",
     };
 
     return result;
@@ -372,8 +370,8 @@ export const analyzeText = async (
   try {
     // 创建请求数据
     const requestData = {
-      fruit_name: fruitLabel.trim(),
-      price: price.trim(),
+      product_name: fruitLabel.trim(),
+      price: `${price.trim()} 元/斤`,
     };
 
     if (DEV_CONFIG.LOG_API_CALLS) {
@@ -404,19 +402,24 @@ export const analyzeText = async (
       confidence: 0.95, // 文字输入的置信度设置为95%
       description: apiResult.description,
       price: apiResult.price || price, // 使用API返回的价格或用户输入的价格
-      isOverpriced: apiResult.is_overpriced === "true",
+      priceStatus: getPriceStatus(apiResult.is_overpriced),
       priceAnalysis: apiResult.price_analysis,
       advantageAnalysis: apiResult.advantage_analysis,
       disadvantageAnalysis: apiResult.disadvantage_analysis,
       userProfileAnalysis: apiResult.user_profile_analysis,
       analysis: apiResult.analysis,
-      nutritionFacts: getDefaultNutritionFacts(apiResult.product_name),
+      nutritionFacts: getNutritionFactsFromApi(
+        apiResult,
+        apiResult.product_name
+      ),
       tips: getDefaultTips(apiResult.product_name),
-      tasteProfile: getDefaultTasteProfile(apiResult.product_name),
-      priceTrend: generatePriceTrend(
+      tasteProfile: getTasteProfileFromApi(apiResult, apiResult.product_name),
+      priceTrend: generatePriceTrendFromApi(
+        apiResult,
         apiResult.product_name,
         apiResult.price || price
       ),
+      market_price_range: apiResult.market_price_range || price,
     };
 
     return result;

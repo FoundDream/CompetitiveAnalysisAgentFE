@@ -330,30 +330,10 @@ const ComparePage: React.FC<ComparePageProps> = ({
             </View>
           </>
         )}
+
+        {/* 底部间距，为统一导航栏留出空间 */}
+        <View style={styles.bottomSpacing} />
       </ScrollView>
-
-      {/* 底部导航栏 */}
-      <View style={styles.bottomNavContainer}>
-        <View style={styles.bottomNav}>
-          <TouchableOpacity style={styles.navItem} onPress={onNavigateToHome}>
-            <View style={styles.navIconContainer}>
-              <HomeIcon
-                width={20}
-                height={20}
-                color="rgba(255, 255, 255, 0.5)"
-              />
-            </View>
-            <Text style={styles.navText}>首页</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.navItem, styles.activeNavItem]}>
-            <View style={styles.navIconContainer}>
-              <CompareIcon width={24} height={24} color="white" />
-            </View>
-            <Text style={[styles.navText, styles.activeNavText]}>比较</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
     </SafeAreaView>
   );
 };
@@ -665,45 +645,8 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.7)",
     lineHeight: 16,
   },
-  bottomNavContainer: {
-    marginTop: 24,
-  },
-  bottomNav: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    marginHorizontal: 24,
-    marginBottom: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 4,
-    borderRadius: 50,
-    boxShadow:
-      "5px 0 4px -3px rgba(255, 255, 255, 0.6) inset, -5px 0 4px -3px rgba(255, 255, 255, 0.6) inset, 0 15px 40px 0 rgba(0, 0, 0, 0.2)",
-    // @ts-ignore
-    backgroundImage:
-      "radial-gradient(63% 63% at 50% 50%, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 43%, rgba(255, 255, 255, 0.05) 74%, rgba(255, 255, 255, 0.2) 100%)",
-  },
-  navItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  activeNavItem: {
-    // 激活状态样式
-  },
-  navIconContainer: {
-    width: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  navText: {
-    fontSize: 12,
-    color: "rgba(255, 255, 255, 0.5)",
-  },
-  activeNavText: {
-    color: "white",
+  bottomSpacing: {
+    height: 100, // 为底部导航栏留出空间
   },
 });
 

@@ -12,11 +12,11 @@ import Svg, {
 } from "react-native-svg";
 
 interface RadarData {
-  sweetness: number; // 甜度 (0-10)
-  acidity: number; // 酸度 (0-10)
-  moisture: number; // 水分 (0-10)
-  crispness: number; // 脆度 (0-10)
-  freshness: number; // 新鲜程度 (0-10, 不展示标签)
+  sweetness: number; // 甜度 (0-5)
+  acidity: number; // 酸度 (0-5)
+  moisture: number; // 水分 (0-5)
+  crispness: number; // 脆度 (0-5)
+  freshness: number; // 新鲜程度 (0-5, 不展示标签)
 }
 
 interface RadarChartProps {
@@ -26,8 +26,9 @@ interface RadarChartProps {
 
 const RadarChart: React.FC<RadarChartProps> = ({ data, size = 200 }) => {
   const center = size / 2;
-  const maxRadius = (size - 60) / 2; // 留出标签空间
+  const maxRadius = (size - 80) / 2; // 增加标签空间，避免溢出
   const levels = 5; // 雷达图层级数
+  const maxValue = 5; // 最大值改为5
 
   // 数据点（按顺序：甜度、酸度、水分、脆度、新鲜程度）
   const values = [
@@ -39,7 +40,7 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 200 }) => {
   ];
 
   // 标签（新鲜程度不显示）
-  const labels = ["甜度", "酸度", "水分", "脆度", ""];
+  const labels = ["甜度", "酸度", "水分", "脆度", "新鲜度"];
 
   // 计算每个点的角度（从顶部开始，顺时针）
   const angleStep = (2 * Math.PI) / 5;
@@ -106,7 +107,7 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 200 }) => {
     for (let i = 0; i < 5; i++) {
       const angle = startAngle + i * angleStep;
       const value = values[i];
-      const radius = (maxRadius * value) / 10; // 假设最大值为10
+      const radius = (maxRadius * value) / maxValue; // 使用maxValue=5
       const point = getPoint(angle, radius);
       points.push(`${point.x},${point.y}`);
     }
@@ -126,21 +127,6 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 200 }) => {
           stroke="#FF6B6B"
           strokeWidth="2"
         />
-        {/* 数据点 */}
-        {/* {points.map((point, index) => {
-          const [x, y] = point.split(",").map(Number);
-          return (
-            <Circle
-              key={`point-${index}`}
-              cx={x}
-              cy={y}
-              r="4"
-              fill="#FF6B6B"
-              stroke="white"
-              strokeWidth="2"
-            />
-          );
-        })} */}
       </G>
     );
   };
@@ -150,18 +136,19 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 200 }) => {
     const labelElements = [];
 
     for (let i = 0; i < 5; i++) {
-      if (!labels[i]) continue; // 跳过空标签（新鲜程度）
+      if (!labels[i]) continue; // 跳过空标签
 
       const angle = startAngle + i * angleStep;
-      const labelRadius = maxRadius + 25;
+      const labelRadius = maxRadius + 30; // 标签距离
       const point = getPoint(angle, labelRadius);
 
+      // 标签文字
       labelElements.push(
         <SvgText
           key={`label-${i}`}
           x={point.x}
           y={point.y}
-          fontSize="12"
+          fontSize="11"
           fill="rgba(255, 255, 255, 0.8)"
           textAnchor="middle"
           alignmentBaseline="middle"
@@ -170,16 +157,13 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 200 }) => {
         </SvgText>
       );
 
-      // 添加数值
-      const valueRadius = maxRadius + 40;
-      const valuePoint = getPoint(angle, valueRadius);
-
+      // 数值显示在标签正下方
       labelElements.push(
         <SvgText
           key={`value-${i}`}
-          x={valuePoint.x}
-          y={valuePoint.y}
-          fontSize="10"
+          x={point.x}
+          y={point.y + 14} // 在标签下方14像素的位置
+          fontSize="9"
           fill="#FF6B6B"
           textAnchor="middle"
           alignmentBaseline="middle"

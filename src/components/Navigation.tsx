@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
 import HomePage from "./HomePage";
 import DetailPage from "./DetailPage";
 import SearchPage from "./SearchPage";
 import ComparePage from "./ComparePage";
 import CameraPage from "./CameraPage";
 import RecognitionResultPage from "./RecognitionResultPage";
+import { HomeIcon, CompareIcon } from "./SvgIcons";
 
 export type PageType =
   | "home"
@@ -73,8 +75,17 @@ const Navigation: React.FC<NavigationProps> = () => {
     navigateToCompare();
   };
 
+  // 判断是否显示底部导航栏
+  const shouldShowBottomNav = () => {
+    return currentPage === "home" || currentPage === "compare";
+  };
+
   // 渲染当前页面
   const renderCurrentPage = () => {
+    const pageProps = {
+      style: styles.pageContainer, // 统一的页面容器样式
+    };
+
     switch (currentPage) {
       case "home":
         return (
@@ -95,7 +106,10 @@ const Navigation: React.FC<NavigationProps> = () => {
         );
       case "search":
         return (
-          <SearchPage onBack={navigateToHome} onFruitPress={navigateToDetail} />
+          <SearchPage
+            onBack={navigateToHome}
+            onRecognitionResult={handleRecognitionResult}
+          />
         );
       case "compare":
         return (
@@ -133,7 +147,139 @@ const Navigation: React.FC<NavigationProps> = () => {
     }
   };
 
-  return renderCurrentPage();
+  return (
+    <View style={styles.container}>
+      {/* 页面内容 */}
+      <View style={styles.contentContainer}>{renderCurrentPage()}</View>
+
+      {/* 统一的底部导航栏 */}
+      {shouldShowBottomNav() && (
+        <View style={styles.bottomNavContainer}>
+          <View style={styles.bottomNav}>
+            <TouchableOpacity
+              style={[
+                styles.navItem,
+                currentPage === "home" && styles.activeNavItem,
+              ]}
+              onPress={navigateToHome}
+            >
+              <View style={styles.navIconContainer}>
+                <HomeIcon
+                  width={24}
+                  height={24}
+                  color={
+                    currentPage === "home"
+                      ? "white"
+                      : "rgba(255, 255, 255, 0.5)"
+                  }
+                />
+              </View>
+              <Text
+                style={[
+                  styles.navText,
+                  currentPage === "home" && styles.activeNavText,
+                ]}
+              >
+                首页
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.navItem,
+                currentPage === "compare" && styles.activeNavItem,
+              ]}
+              onPress={navigateToCompare}
+            >
+              <View style={styles.navIconContainer}>
+                <CompareIcon
+                  width={20}
+                  height={20}
+                  color={
+                    currentPage === "compare"
+                      ? "white"
+                      : "rgba(255, 255, 255, 0.5)"
+                  }
+                />
+              </View>
+              <Text
+                style={[
+                  styles.navText,
+                  currentPage === "compare" && styles.activeNavText,
+                ]}
+              >
+                比较
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </View>
+  );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#726B61",
+  },
+  contentContainer: {
+    flex: 1,
+  },
+  pageContainer: {
+    flex: 1,
+  },
+  // 底部导航栏样式
+  bottomNavContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: 40,
+    paddingTop: 24,
+  },
+  bottomNav: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    marginHorizontal: 24,
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+    borderRadius: 50,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  navItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  activeNavItem: {
+    // 激活状态样式
+  },
+  navIconContainer: {
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  navText: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.5)",
+    fontWeight: "400",
+  },
+  activeNavText: {
+    color: "white",
+    fontWeight: "500",
+  },
+});
 
 export default Navigation;

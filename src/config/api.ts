@@ -1,7 +1,7 @@
 // API配置
 export const API_CONFIG = {
   BASE_URL: "http://172.20.10.3:8000", // 使用开发机IP替代localhost
-  TIMEOUT: 60000, // 30秒
+  TIMEOUT: 600000, // 10分钟
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
   SUPPORTED_IMAGE_TYPES: ["jpg", "jpeg", "png", "gif", "bmp", "webp"],
 };

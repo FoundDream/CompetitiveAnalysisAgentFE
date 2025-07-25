@@ -36,8 +36,8 @@ const PriceTrendChart: React.FC<PriceTrendChartProps> = ({
 
   // 计算价格范围
   const prices = data.map((d) => d.price);
-  const minPrice = Math.min(...prices, currentPrice);
-  const maxPrice = Math.max(...prices, currentPrice);
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
   const priceRange = maxPrice - minPrice;
   const paddedMin = minPrice - priceRange * 0.1;
   const paddedMax = maxPrice + priceRange * 0.1;
@@ -178,7 +178,7 @@ const PriceTrendChart: React.FC<PriceTrendChartProps> = ({
   // 格式化日期
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return `${date.getMonth() + 1}/${date.getDate()}`;
+    return `${date.getMonth() + 1}月`;
   };
 
   // 趋势箭头
@@ -207,9 +207,9 @@ const PriceTrendChart: React.FC<PriceTrendChartProps> = ({
           <Text style={[styles.trendIcon, { color: getTrendColor() }]}>
             {getTrendIcon()}
           </Text>
-          <Text style={[styles.trendText, { color: getTrendColor() }]}>
+          {/* <Text style={[styles.trendText, { color: getTrendColor() }]}>
             {Math.abs(parseFloat(trendPercentage))}%
-          </Text>
+          </Text> */}
         </View>
         <Text style={styles.trendLabel}>
           {trend === "up"
