@@ -9,6 +9,7 @@ import {
   TextInput,
   StatusBar,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { analyzeText, RecognitionResult } from "../services/apiService";
 
@@ -24,8 +25,8 @@ const SearchPage: React.FC<SearchPageProps> = ({
   const [fruitLabel, setFruitLabel] = useState("");
   const [price, setPrice] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState("");
 
-  // 预留的功能函数
   const handleBack = () => {
     console.log("返回");
     onBack?.();
@@ -56,22 +57,58 @@ const SearchPage: React.FC<SearchPageProps> = ({
     if (!validateInput()) return;
 
     setIsAnalyzing(true);
+    setAnalysisProgress("正在连接服务器...");
     console.log("开始文字识别:", { fruitLabel, price });
 
     try {
+      // 添加进度提示
+      const progressTimer = setTimeout(() => {
+        setAnalysisProgress("正在分析水果信息...");
+      }, 2000);
+
+      const progressTimer2 = setTimeout(() => {
+        setAnalysisProgress("正在生成分析报告...");
+      }, 5000);
+
       const result = await analyzeText(fruitLabel, price);
+
+      // 清除定时器
+      clearTimeout(progressTimer);
+      clearTimeout(progressTimer2);
+
       console.log("识别成功:", result);
 
       // 由于是文字输入，没有实际图片，使用空字符串作为imageUri
       onRecognitionResult?.(result, "");
     } catch (error) {
       console.error("识别失败:", error);
-      Alert.alert(
-        "识别失败",
-        error instanceof Error ? error.message : "请检查网络连接后重试"
-      );
+
+      let errorMessage = "请检查网络连接后重试";
+      if (error instanceof Error) {
+        if (
+          error.message.includes("timeout") ||
+          error.message.includes("超时")
+        ) {
+          errorMessage = "服务器响应超时，请稍后重试";
+        } else if (
+          error.message.includes("Network Error") ||
+          error.message.includes("无法连接")
+        ) {
+          errorMessage = "无法连接到服务器，请检查网络连接";
+        } else if (error.message.includes("400")) {
+          errorMessage = "输入信息有误，请检查水果名称和价格";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      Alert.alert("识别失败", errorMessage, [
+        { text: "取消", style: "cancel" },
+        { text: "重试", onPress: () => handleAnalyze() },
+      ]);
     } finally {
       setIsAnalyzing(false);
+      setAnalysisProgress("");
     }
   };
 
@@ -129,8 +166,9 @@ const SearchPage: React.FC<SearchPageProps> = ({
                 value={fruitLabel}
                 onChangeText={setFruitLabel}
                 returnKeyType="next"
+                editable={!isAnalyzing}
               />
-              {fruitLabel.length > 0 && (
+              {fruitLabel.length > 0 && !isAnalyzing && (
                 <TouchableOpacity onPress={() => setFruitLabel("")}>
                   <Text style={styles.clearIcon}>✕</Text>
                 </TouchableOpacity>
@@ -150,8 +188,9 @@ const SearchPage: React.FC<SearchPageProps> = ({
                 onChangeText={setPrice}
                 keyboardType="decimal-pad"
                 returnKeyType="done"
+                editable={!isAnalyzing}
               />
-              {price.length > 0 && (
+              {price.length > 0 && !isAnalyzing && (
                 <TouchableOpacity onPress={() => setPrice("")}>
                   <Text style={styles.clearIcon}>✕</Text>
                 </TouchableOpacity>
@@ -169,65 +208,88 @@ const SearchPage: React.FC<SearchPageProps> = ({
               onPress={handleAnalyze}
               disabled={isAnalyzing || !fruitLabel.trim() || !price.trim()}
             >
-              <Text style={styles.analyzeButtonText}>
-                {isAnalyzing ? "分析中..." : "开始分析"}
-              </Text>
-              {isAnalyzing && <Text style={styles.loadingIcon}>⏳</Text>}
+              {isAnalyzing ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#370B0B" />
+                  <Text style={styles.analyzeButtonText}>分析中...</Text>
+                </View>
+              ) : (
+                <Text style={styles.analyzeButtonText}>开始分析</Text>
+              )}
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.clearButton}
-              onPress={handleClearInput}
-            >
-              <Text style={styles.clearButtonText}>清空输入</Text>
-            </TouchableOpacity>
+            {!isAnalyzing && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={handleClearInput}
+              >
+                <Text style={styles.clearButtonText}>清空输入</Text>
+              </TouchableOpacity>
+            )}
           </View>
+
+          {/* 分析进度提示 */}
+          {isAnalyzing && analysisProgress && (
+            <View style={styles.progressContainer}>
+              <Text style={styles.progressText}>{analysisProgress}</Text>
+              <Text style={styles.progressSubText}>
+                请耐心等待，通常需要10-30秒
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* 快速输入 */}
-        <View style={styles.quickInputSection}>
-          <Text style={styles.quickInputTitle}>快速输入</Text>
-          <Text style={styles.quickInputSubtitle}>
-            点击下方选项快速填入常见水果
-          </Text>
+        {!isAnalyzing && (
+          <View style={styles.quickInputSection}>
+            <Text style={styles.quickInputTitle}>快速输入</Text>
+            <Text style={styles.quickInputSubtitle}>
+              点击下方选项快速填入常见水果
+            </Text>
 
-          <View style={styles.quickInputGrid}>
-            {[
-              { name: "红富士苹果", price: "8.5", emoji: "🍎" },
-              { name: "脐橙", price: "6.8", emoji: "🍊" },
-              { name: "香蕉", price: "5.2", emoji: "🍌" },
-              { name: "芒果", price: "12.0", emoji: "🥭" },
-              { name: "草莓", price: "15.8", emoji: "🍓" },
-              { name: "蓝莓", price: "25.0", emoji: "🫐" },
-            ].map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.quickInputItem}
-                onPress={() => handleQuickInput(item.name, item.price)}
-              >
-                <Text style={styles.quickInputEmoji}>{item.emoji}</Text>
-                <Text style={styles.quickInputName}>{item.name}</Text>
-                <Text style={styles.quickInputPrice}>¥{item.price}/斤</Text>
-              </TouchableOpacity>
-            ))}
+            <View style={styles.quickInputGrid}>
+              {[
+                { name: "红富士苹果", price: "8.5", emoji: "🍎" },
+                { name: "脐橙", price: "6.8", emoji: "🍊" },
+                { name: "香蕉", price: "5.2", emoji: "🍌" },
+                { name: "芒果", price: "12.0", emoji: "🥭" },
+                { name: "草莓", price: "15.8", emoji: "🍓" },
+                { name: "蓝莓", price: "25.0", emoji: "🫐" },
+              ].map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.quickInputItem}
+                  onPress={() => handleQuickInput(item.name, item.price)}
+                >
+                  <Text style={styles.quickInputEmoji}>{item.emoji}</Text>
+                  <Text style={styles.quickInputName}>{item.name}</Text>
+                  <Text style={styles.quickInputPrice}>¥{item.price}/斤</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* 提示信息 */}
-        <View style={styles.tipsSection}>
-          <Text style={styles.tipsTitle}>💡 使用提示</Text>
-          <View style={styles.tipsList}>
-            <Text style={styles.tipItem}>
-              • 请输入具体的水果品种，如"红富士苹果"而非"苹果"
-            </Text>
-            <Text style={styles.tipItem}>
-              • 价格请输入当前市场价格，支持小数点后两位
-            </Text>
-            <Text style={styles.tipItem}>
-              • 我们将基于您的输入提供专业的价格和品质分析
-            </Text>
+        {!isAnalyzing && (
+          <View style={styles.tipsSection}>
+            <Text style={styles.tipsTitle}>💡 使用提示</Text>
+            <View style={styles.tipsList}>
+              <Text style={styles.tipItem}>
+                • 请输入具体的水果品种，如"红富士苹果"而非"苹果"
+              </Text>
+              <Text style={styles.tipItem}>
+                • 价格请输入当前市场价格，支持小数点后两位
+              </Text>
+              <Text style={styles.tipItem}>
+                • 我们将基于您的输入提供专业的价格和品质分析
+              </Text>
+              <Text style={styles.tipItem}>
+                • 首次分析可能需要较长时间，请耐心等待
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* 底部间距 */}
         <View style={styles.bottomSpacing} />
@@ -424,6 +486,25 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 40,
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  progressContainer: {
+    marginTop: 20,
+    alignItems: "center",
+  },
+  progressText: {
+    fontSize: 16,
+    color: "white",
+    fontWeight: "300",
+    marginBottom: 4,
+  },
+  progressSubText: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.7)",
   },
 });
 

@@ -10,8 +10,8 @@ export interface ApiAnalysisResult {
   price_analysis: string;
   advantage_analysis: string;
   disadvantage_analysis: string;
-  user_profile_analysis: string;
-  analysis: string;
+  user_profile_analysis?: string;
+  analysis?: string;
   // 新增口味相关字段
   fresh_level?: string;
   sweet_level?: string;
@@ -23,6 +23,8 @@ export interface ApiAnalysisResult {
   market_price_range?: string;
   // 新增营养成分分析字段
   nutrition_analysis?: { [key: string]: string };
+  // 新增字段
+  price_unit?: string;
 }
 
 // 口味分析数据结构
@@ -283,8 +285,8 @@ export const analyzeImage = async (
       priceAnalysis: apiResult.price_analysis,
       advantageAnalysis: apiResult.advantage_analysis,
       disadvantageAnalysis: apiResult.disadvantage_analysis,
-      userProfileAnalysis: apiResult.user_profile_analysis,
-      analysis: apiResult.analysis,
+      userProfileAnalysis: apiResult.user_profile_analysis || "无特殊建议",
+      analysis: apiResult.analysis || "暂无详细分析",
       nutritionFacts: getNutritionFactsFromApi(
         apiResult,
         apiResult.product_name
@@ -406,8 +408,8 @@ export const analyzeText = async (
       priceAnalysis: apiResult.price_analysis,
       advantageAnalysis: apiResult.advantage_analysis,
       disadvantageAnalysis: apiResult.disadvantage_analysis,
-      userProfileAnalysis: apiResult.user_profile_analysis,
-      analysis: apiResult.analysis,
+      userProfileAnalysis: apiResult.user_profile_analysis || "无特殊建议",
+      analysis: apiResult.analysis || "暂无详细分析",
       nutritionFacts: getNutritionFactsFromApi(
         apiResult,
         apiResult.product_name
@@ -449,8 +451,10 @@ export const analyzeText = async (
         });
       }
 
-      if (error.code === "ECONNABORTED") {
-        throw new Error("请求超时，请检查网络连接");
+      if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") {
+        throw new Error("服务器响应超时，AI分析需要较长时间，请稍后重试");
+      } else if (error.code === "ERR_NETWORK") {
+        throw new Error("网络连接失败，请检查网络连接或稍后重试");
       } else if (error.response) {
         const status = error.response.status;
         if (status === 400) {
@@ -459,11 +463,13 @@ export const analyzeText = async (
               error.response.data?.message || "请检查水果名称和价格格式"
             }`
           );
+        } else if (status === 422) {
+          throw new Error("输入数据格式错误，请检查水果名称和价格");
+        } else if (status === 500) {
+          throw new Error("服务器内部错误，AI分析服务暂时不可用");
         } else if (status >= 500) {
           throw new Error(
-            `服务器错误 (${status}): ${
-              error.response.data?.message || "请稍后重试"
-            }`
+            `服务器错误 (${status}): AI服务暂时不可用，请稍后重试`
           );
         } else {
           throw new Error(
@@ -473,12 +479,12 @@ export const analyzeText = async (
           );
         }
       } else if (error.request) {
-        throw new Error("无法连接到服务器，请检查网络连接和服务器地址");
+        throw new Error("无法连接到AI分析服务器，请检查网络连接");
       } else {
         throw new Error(`请求配置错误: ${error.message}`);
       }
     }
 
-    throw new Error("识别失败，请重试");
+    throw new Error("AI分析失败，请重试");
   }
 };
