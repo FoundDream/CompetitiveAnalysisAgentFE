@@ -32,9 +32,11 @@ const Navigation: React.FC<NavigationProps> = () => {
     setCurrentPage("home");
   };
 
-  const navigateToPhoto = () => {
-    setCurrentPage("photo");
-    console.log("导航到拍照识别页面");
+  const handleDirectRecognition = (result: any, imageUri: string) => {
+    setRecognitionResult(result);
+    setCapturedImageUri(imageUri);
+    setCurrentPage("recognition");
+    console.log("识别完成，跳转到结果页面");
   };
 
   const navigateToCamera = () => {
@@ -77,8 +79,7 @@ const Navigation: React.FC<NavigationProps> = () => {
       case "home":
         return (
           <HomePage
-            onFruitPress={navigateToDetail}
-            onPhotoRecognition={navigateToCamera}
+            onRecognitionResult={handleDirectRecognition}
             onTextSearch={navigateToSearch}
             onNavigateToCompare={navigateToCompare}
           />
@@ -124,9 +125,9 @@ const Navigation: React.FC<NavigationProps> = () => {
       default:
         return (
           <HomePage
-            onFruitPress={navigateToDetail}
-            onPhotoRecognition={navigateToCamera}
+            onRecognitionResult={handleDirectRecognition}
             onTextSearch={navigateToSearch}
+            onNavigateToCompare={navigateToCompare}
           />
         );
     }

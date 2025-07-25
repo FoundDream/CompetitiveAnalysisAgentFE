@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { HeartIcon, StatsIcon, ArrowLeftIcon } from "./SvgIcons";
 import { RecognitionResult } from "../services/apiService";
+import RadarChart from "./RadarChart";
+import PriceTrendChart from "./PriceTrendChart";
 
 interface RecognitionResultPageProps {
   result: RecognitionResult;
@@ -38,25 +40,11 @@ const RecognitionResultPage: React.FC<RecognitionResultPageProps> = ({
       />
 
       {/* 顶部导航 */}
+      <TouchableOpacity style={styles.backButton} onPress={onBack}>
+        <ArrowLeftIcon width={20} height={20} color="white" />
+      </TouchableOpacity>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <ArrowLeftIcon width={20} height={20} color="white" />
-        </TouchableOpacity>
         <Text style={styles.title}>识别结果</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => onSaveToFavorites?.(result)}
-          >
-            <HeartIcon width={16} height={16} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => onCompare?.(result)}
-          >
-            <StatsIcon width={16} height={16} color="white" />
-          </TouchableOpacity>
-        </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -90,7 +78,7 @@ const RecognitionResultPage: React.FC<RecognitionResultPageProps> = ({
           <Text style={styles.sectionTitle}>价格分析</Text>
           <View style={styles.priceAnalysisCard}>
             <View style={styles.priceHeader}>
-              <Text style={styles.priceValue}>¥{result.price}</Text>
+              <Text style={styles.priceValue}>预估: ¥{result.price}</Text>
               <View
                 style={[
                   styles.priceBadge,
@@ -119,16 +107,20 @@ const RecognitionResultPage: React.FC<RecognitionResultPageProps> = ({
               </View>
             </View>
 
-            <View style={styles.userProfileSection}>
-              <Text style={styles.userProfileLabel}>适合人群</Text>
-              <Text style={styles.userProfileText}>
-                {result.userProfileAnalysis}
-              </Text>
-            </View>
-
             <View style={styles.comprehensiveAnalysis}>
               <Text style={styles.comprehensiveLabel}>综合分析</Text>
               <Text style={styles.comprehensiveText}>{result.analysis}</Text>
+            </View>
+
+            {/* 价格趋势图 */}
+            <View style={styles.priceTrendSection}>
+              <Text style={styles.priceTrendTitle}>价格趋势</Text>
+              <PriceTrendChart
+                data={result.priceTrend}
+                currentPrice={parseFloat(result.price) || 0}
+                width={320}
+                height={180}
+              />
             </View>
           </View>
         </View>
@@ -164,16 +156,14 @@ const RecognitionResultPage: React.FC<RecognitionResultPageProps> = ({
           </View>
         </View>
 
-        {/* 食用建议 */}
+        {/* 口味分析 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>食用建议</Text>
-          <View style={styles.tipsContainer}>
-            {result.tips.map((tip, index) => (
-              <View key={index} style={styles.tipItem}>
-                <View style={styles.tipBullet} />
-                <Text style={styles.tipText}>{tip}</Text>
-              </View>
-            ))}
+          <Text style={styles.sectionTitle}>口味分析</Text>
+          <View style={styles.tasteAnalysisCard}>
+            <RadarChart data={result.tasteProfile} size={280} />
+            <Text style={styles.tasteNote}>
+              * 新鲜程度影响整体口感，但不单独标注
+            </Text>
           </View>
         </View>
 
@@ -181,18 +171,10 @@ const RecognitionResultPage: React.FC<RecognitionResultPageProps> = ({
         <View style={styles.actionsSection}>
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => onSaveToFavorites?.(result)}
-          >
-            <HeartIcon width={20} height={20} color="white" />
-            <Text style={styles.primaryButtonText}>收藏到我的水果</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.secondaryButton}
             onPress={() => onCompare?.(result)}
           >
             <StatsIcon width={20} height={20} color="#726B61" />
-            <Text style={styles.secondaryButtonText}>添加到比较</Text>
+            <Text style={styles.primaryButtonText}>添加到比较</Text>
           </TouchableOpacity>
         </View>
 
@@ -210,12 +192,16 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
     height: 56,
     paddingHorizontal: 24,
+    marginBottom: 16,
   },
   backButton: {
+    position: "absolute",
+    left: 30,
+    top: 72,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -230,20 +216,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: "300",
+    fontWeight: "500",
     color: "white",
-  },
-  headerActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    justifyContent: "center",
-    alignItems: "center",
   },
   content: {
     flex: 1,
@@ -333,30 +307,6 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.8)",
     textAlign: "center",
   },
-  tipsContainer: {
-    gap: 12,
-  },
-  tipItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 12,
-    padding: 16,
-  },
-  tipBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#FF6B6B",
-    marginTop: 7,
-    marginRight: 12,
-  },
-  tipText: {
-    flex: 1,
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.9)",
-    lineHeight: 20,
-  },
   actionsSection: {
     gap: 12,
     marginTop: 8,
@@ -371,20 +321,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  secondaryButton: {
-    height: 48,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 24,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-  },
-  secondaryButtonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "500",
@@ -452,22 +388,6 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.9)",
     lineHeight: 18,
   },
-  userProfileSection: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-  },
-  userProfileLabel: {
-    fontSize: 12,
-    color: "rgba(255, 255, 255, 0.7)",
-    marginBottom: 4,
-  },
-  userProfileText: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.9)",
-    lineHeight: 18,
-  },
   comprehensiveAnalysis: {
     backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRadius: 12,
@@ -482,6 +402,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "rgba(255, 255, 255, 0.9)",
     lineHeight: 20,
+  },
+  // 口味分析相关样式
+  tasteAnalysisCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+  },
+  tasteNote: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.6)",
+    textAlign: "center",
+    marginTop: 12,
+    fontStyle: "italic",
+  },
+  // 价格趋势相关样式
+  priceTrendSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
+  },
+  priceTrendTitle: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.9)",
+    marginBottom: 12,
+    fontWeight: "500",
   },
 });
 
