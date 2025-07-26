@@ -319,12 +319,12 @@ const ComparePage: React.FC<ComparePageProps> = ({
                       <Text style={styles.cardOrigin}>{item.origin}</Text>
                       <Text style={styles.cardPrice}>{item.price}</Text>
 
-                      <View style={styles.cardRating}>
+                      {/* <View style={styles.cardRating}>
                         <View style={styles.cardStars}>
                           {renderStars(Math.floor(item.rating))}
                         </View>
                         <Text style={styles.cardRatingText}>{item.rating}</Text>
-                      </View>
+                      </View> */}
 
                       <Text style={styles.cardDescription}>
                         {item.description}
@@ -353,7 +353,7 @@ const ComparePage: React.FC<ComparePageProps> = ({
               <View style={styles.comparisonTable}>
                 {/* 价格对比 */}
                 <View style={styles.comparisonRow}>
-                  <Text style={styles.comparisonLabel}>价格</Text>
+                  <Text style={styles.comparisonLabel}>¥价格</Text>
                   <View style={styles.comparisonValues}>
                     {compareList.map((item) => (
                       <View
@@ -365,8 +365,7 @@ const ComparePage: React.FC<ComparePageProps> = ({
                     ))}
                   </View>
                 </View>
-
-                {/* 评分对比 */}
+                {/* 评分对比
                 <View style={styles.comparisonRow}>
                   <Text style={styles.comparisonLabel}>评分</Text>
                   <View style={styles.comparisonValues}>
@@ -382,13 +381,11 @@ const ComparePage: React.FC<ComparePageProps> = ({
                       </View>
                     ))}
                   </View>
-                </View>
-
+                </View> */}
                 {/* 口感对比 */}
                 {renderComparisonRow("甜度", "sweetness")}
                 {renderComparisonRow("汁水", "moisture")}
                 {renderComparisonRow("脆度", "crispness")}
-
                 {/* 产地对比 */}
                 <View style={styles.comparisonRow}>
                   <Text style={styles.comparisonLabel}>产地</Text>

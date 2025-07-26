@@ -12,11 +12,11 @@ import Svg, {
 } from "react-native-svg";
 
 interface RadarData {
-  sweetness: number; // 甜度 (0-5)
-  acidity: number; // 酸度 (0-5)
-  moisture: number; // 水分 (0-5)
-  crispness: number; // 脆度 (0-5)
-  freshness: number; // 新鲜程度 (0-5, 不展示标签)
+  sweetness: number | null; // 甜度 (0-5)
+  acidity: number | null; // 酸度 (0-5)
+  moisture: number | null; // 水分 (0-5)
+  crispness: number | null; // 脆度 (0-5)
+  freshness: number | null; // 新鲜程度 (0-5, 不展示标签)
 }
 
 interface RadarChartProps {
@@ -31,12 +31,13 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 200 }) => {
   const maxValue = 5; // 最大值改为5
 
   // 数据点（按顺序：甜度、酸度、水分、脆度、新鲜程度）
+  // 处理null值，将null转换为0
   const values = [
-    data.sweetness,
-    data.acidity,
-    data.moisture,
-    data.crispness,
-    data.freshness,
+    data.sweetness ?? 0,
+    data.acidity ?? 0,
+    data.moisture ?? 0,
+    data.crispness ?? 0,
+    data.freshness ?? 0,
   ];
 
   // 标签（新鲜程度不显示）

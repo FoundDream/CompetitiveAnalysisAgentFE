@@ -293,26 +293,6 @@ const TaskPage: React.FC<TaskPageProps> = ({ onBack, onTaskPress }) => {
         </View>
       </View>
 
-      {/* 统计信息 */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{activeTasks.length}</Text>
-          <Text style={styles.statLabel}>进行中</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{completedTasks.length}</Text>
-          <Text style={styles.statLabel}>已完成</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{failedTasks.length}</Text>
-          <Text style={styles.statLabel}>失败</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{state.tasks.length}</Text>
-          <Text style={styles.statLabel}>总计</Text>
-        </View>
-      </View>
-
       {/* 筛选标签 */}
       <View style={styles.tabContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>

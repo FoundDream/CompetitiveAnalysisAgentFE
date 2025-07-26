@@ -29,11 +29,11 @@ export interface ApiAnalysisResult {
 
 // 口味分析数据结构
 export interface TasteProfile {
-  sweetness: number; // 甜度 (0-5)
-  acidity: number; // 酸度 (0-5)
-  moisture: number; // 水分 (0-5)
-  crispness: number; // 脆度 (0-5)
-  freshness: number; // 新鲜程度 (0-5)
+  sweetness: number | null; // 甜度 (0-5)
+  acidity: number | null; // 酸度 (0-5)
+  moisture: number | null; // 水分 (0-5)
+  crispness: number | null; // 脆度 (0-5)
+  freshness: number | null; // 新鲜程度 (0-5)
 }
 
 // 价格趋势数据结构
@@ -143,29 +143,19 @@ const getTasteProfileFromApi = (
   apiResult: ApiAnalysisResult,
   productName: string
 ): TasteProfile => {
-  // 如果API返回了口味数据，则使用API数据
-  if (
-    apiResult.sweet_level &&
-    apiResult.sour_level &&
-    apiResult.water_level &&
-    apiResult.crisp_level &&
-    apiResult.fresh_level
-  ) {
-    return {
-      sweetness: parseFloat(apiResult.sweet_level) || 0,
-      acidity: parseFloat(apiResult.sour_level) || 0,
-      moisture: parseFloat(apiResult.water_level) || 0,
-      crispness: parseFloat(apiResult.crisp_level) || 0,
-      freshness: parseFloat(apiResult.fresh_level) || 0,
-    };
-  }
+  // 安全地解析每个字段，null值转换为0
+  const parseValue = (value: string | undefined | null): number => {
+    if (value === null || value === undefined) return 0;
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? 0 : parsed;
+  };
 
   return {
-    sweetness: 0,
-    acidity: 0,
-    moisture: 0,
-    crispness: 0,
-    freshness: 0,
+    sweetness: parseValue(apiResult.sweet_level),
+    acidity: parseValue(apiResult.sour_level),
+    moisture: parseValue(apiResult.water_level),
+    crispness: parseValue(apiResult.crisp_level),
+    freshness: parseValue(apiResult.fresh_level),
   };
 };
 

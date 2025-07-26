@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { NetworkHelper } from "./networkHelper";
 
 // 开发环境配置 - 在这里设置你的开发电脑IP地址
 const DEVELOPMENT_CONFIG = {
@@ -98,10 +99,23 @@ if (__DEV__ && DEVELOPMENT_CONFIG.ENABLE_LOGGING) {
     computerIP: DEVELOPMENT_CONFIG.COMPUTER_IP,
   });
 
-  console.log("📱 真机调试提示:");
-  console.log("   如果你在真机上调试遇到网络错误，请：");
-  console.log(`   1. 将 COMPUTER_IP 改为你的电脑IP地址`);
-  console.log(`   2. 将 FORCE_USE_IP 设置为 true`);
-  console.log(`   3. 确保手机和电脑在同一WiFi网络`);
-  console.log(`   4. 确保后端服务运行在 ${DEVELOPMENT_CONFIG.PORT} 端口`);
+  // 使用网络诊断工具
+  console.log(NetworkHelper.getCurrentNetworkInfo());
+
+  // 异步测试API连接
+  NetworkHelper.testConnection(DEVELOPMENT_CONFIG.COMPUTER_IP)
+    .then((result) => {
+      if (result.success) {
+        console.log("✅ API连接测试成功！");
+      } else {
+        console.log("❌ API连接测试失败:", result.message);
+        console.log("🔧 请检查网络配置或使用以下命令获取帮助:");
+        console.log(
+          `   NetworkHelper.diagnoseNetwork("${DEVELOPMENT_CONFIG.COMPUTER_IP}")`
+        );
+      }
+    })
+    .catch((error) => {
+      console.log("⚠️ API连接测试出错:", error.message);
+    });
 }

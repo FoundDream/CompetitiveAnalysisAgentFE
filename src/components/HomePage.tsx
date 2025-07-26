@@ -5,7 +5,6 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  ScrollView,
   StatusBar,
   Alert,
   ActivityIndicator,
@@ -13,7 +12,7 @@ import {
 } from "react-native";
 import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
-import { SearchIcon, SettingsIcon } from "./SvgIcons";
+import { SearchIcon, SettingsIcon, KimiIcon, ParaflowIcon } from "./SvgIcons";
 import {
   analyzeImage,
   RecognitionResult as ApiRecognitionResult,
@@ -314,7 +313,10 @@ const HomePage: React.FC<HomePageProps> = ({
         </View>
 
         <View style={styles.powerTextContainer}>
-          <Text style={styles.powerText}>POWERED BY KIMI/MINIMAX AI</Text>
+          <Text style={styles.powerText}>Powered by</Text>
+          <KimiIcon width={18} height={18} color="white" />
+          <Text style={styles.powerText}>| Designed by</Text>
+          <ParaflowIcon width={48} height={24} color="white" />
         </View>
       </View>
 
@@ -354,12 +356,14 @@ const styles = StyleSheet.create({
     color: "white",
   },
   powerTextContainer: {
-    display: "flex",
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+    gap: 4,
     marginTop: 12,
   },
   powerText: {
+    gap: 4,
     fontSize: 10,
     fontWeight: "500",
     color: "white",
