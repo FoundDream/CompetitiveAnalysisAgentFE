@@ -109,13 +109,17 @@ if (__DEV__ && DEVELOPMENT_CONFIG.ENABLE_LOGGING) {
         console.log("✅ API连接测试成功！");
       } else {
         console.log("❌ API连接测试失败:", result.message);
-        console.log("🔧 请检查网络配置或使用以下命令获取帮助:");
+        console.log("🔧 请检查网络配置或运行快速诊断:");
         console.log(
-          `   NetworkHelper.diagnoseNetwork("${DEVELOPMENT_CONFIG.COMPUTER_IP}")`
+          `   import { quickDiagnose } from './config/networkHelper';`
         );
+        console.log(`   quickDiagnose("${DEVELOPMENT_CONFIG.COMPUTER_IP}");`);
       }
     })
     .catch((error) => {
       console.log("⚠️ API连接测试出错:", error.message);
+      console.log("🔧 运行快速诊断以获取详细帮助:");
+      console.log(`   import { quickDiagnose } from './config/networkHelper';`);
+      console.log(`   quickDiagnose("${DEVELOPMENT_CONFIG.COMPUTER_IP}");`);
     });
 }

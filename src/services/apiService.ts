@@ -478,3 +478,146 @@ export const analyzeText = async (
     throw new Error("AI分析失败，请重试");
   }
 };
+
+// 个性化推荐API响应接口
+export interface RecommendationApiResponse {
+  success: boolean;
+  data: string;
+  input: {
+    budget: string;
+    special_remark: string;
+    available_fruits: string[];
+  };
+}
+
+// 个性化推荐API调用
+export const getPersonalizedRecommendation = async (
+  budget: string,
+  specialRemark: string,
+  availableFruits: string[]
+): Promise<string> => {
+  try {
+    // 创建请求数据
+    const requestData = {
+      budget: budget,
+      special_remark: specialRemark,
+      available_fruits: availableFruits,
+    };
+
+    if (DEV_CONFIG.LOG_API_CALLS) {
+      console.log("发送个性化推荐请求:", requestData);
+    }
+
+    // 发送API请求
+    const response = await axios.post<RecommendationApiResponse>(
+      getApiUrl("/recommend_fruits"),
+      requestData,
+      {
+        timeout: API_CONFIG.TIMEOUT,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (DEV_CONFIG.LOG_API_CALLS) {
+      console.log("个性化推荐API调用成功:", response.data);
+    }
+
+    const apiResult = response.data;
+
+    if (!apiResult.success) {
+      throw new Error("API返回失败状态");
+    }
+
+    // 处理返回的推荐结果
+    let recommendationText = apiResult.data;
+
+    // 如果返回的是JSON格式的字符串，尝试解析并提取value
+    try {
+      const parsedData = JSON.parse(recommendationText);
+
+      // 如果是对象格式，提取所有value并组合
+      if (typeof parsedData === "object" && parsedData !== null) {
+        const values = Object.values(parsedData);
+        if (values.length > 0) {
+          // 将所有推荐内容组合成一个字符串
+          recommendationText = values
+            .map((value, index) => {
+              const fruitName = Object.keys(parsedData)[index];
+              return `🍊 **${fruitName}**\n\n${value}`;
+            })
+            .join("\n\n---\n\n");
+        }
+      }
+    } catch (parseError) {
+      // 如果不是JSON格式，直接使用原始文本
+      if (DEV_CONFIG.LOG_API_CALLS) {
+        console.log("推荐结果不是JSON格式，使用原始文本");
+      }
+    }
+
+    return recommendationText;
+  } catch (error) {
+    if (DEV_CONFIG.LOG_API_CALLS) {
+      console.error("个性化推荐API调用失败详细信息:", error);
+    }
+
+    // 处理不同类型的错误
+    if (axios.isAxiosError(error)) {
+      if (DEV_CONFIG.LOG_API_CALLS) {
+        console.error("Axios错误详情:", {
+          code: error.code,
+          message: error.message,
+          config: {
+            url: error.config?.url,
+            method: error.config?.method,
+            timeout: error.config?.timeout,
+          },
+          response: error.response
+            ? {
+                status: error.response.status,
+                statusText: error.response.statusText,
+                data: error.response.data,
+              }
+            : null,
+        });
+      }
+
+      if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") {
+        throw new Error("AI推荐分析超时，请稍后重试");
+      } else if (error.code === "ERR_NETWORK") {
+        throw new Error("网络连接失败，请检查网络连接或稍后重试");
+      } else if (error.response) {
+        const status = error.response.status;
+        if (status === 400) {
+          throw new Error(
+            `推荐请求参数无效: ${
+              error.response.data?.message || "请检查预算和水果列表"
+            }`
+          );
+        } else if (status === 422) {
+          throw new Error("推荐数据格式错误，请检查输入参数");
+        } else if (status === 500) {
+          throw new Error("服务器内部错误，AI推荐服务暂时不可用");
+        } else if (status >= 500) {
+          throw new Error(
+            `服务器错误 (${status}): AI推荐服务暂时不可用，请稍后重试`
+          );
+        } else {
+          throw new Error(
+            `API错误 (${status}): ${
+              error.response.data?.message || "请检查网络连接"
+            }`
+          );
+        }
+      } else if (error.request) {
+        throw new Error("无法连接到AI推荐服务器，请检查网络连接");
+      } else {
+        throw new Error(`请求配置错误: ${error.message}`);
+      }
+    }
+
+    throw new Error("AI推荐分析失败，请重试");
+  }
+};

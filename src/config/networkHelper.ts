@@ -207,3 +207,56 @@ export const diagnoseNetwork = (ip: string) =>
   NetworkHelper.diagnoseNetwork(ip);
 export const generateConfigSuggestion = (ip: string) =>
   NetworkHelper.generateConfigSuggestion(ip);
+
+// 快速诊断网络连接问题
+export const quickDiagnose = async (
+  ip: string,
+  port: number = 8000
+): Promise<void> => {
+  console.log("🔍 开始网络诊断...");
+  console.log(`📍 目标地址: http://${ip}:${port}`);
+
+  try {
+    // 使用Promise.race来实现超时
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout")), 5000)
+    );
+
+    // 测试基本连接
+    const response = await Promise.race([
+      fetch(`http://${ip}:${port}`, { method: "GET" }),
+      timeoutPromise,
+    ]);
+
+    console.log("✅ 服务器连接成功");
+    console.log(`📊 状态码: ${response.status}`);
+
+    // 测试具体API端点
+    try {
+      const apiTest = await Promise.race([
+        fetch(`http://${ip}:${port}/analyze_image`, { method: "POST" }),
+        timeoutPromise,
+      ]);
+      console.log(`🔌 API端点测试: ${apiTest.status}`);
+    } catch (apiError) {
+      console.log("⚠️ API端点可能不可用，但服务器在运行");
+    }
+  } catch (error) {
+    console.log("❌ 连接失败，可能的原因:");
+    console.log("  1. 后端服务未启动");
+    console.log("  2. IP地址已变化");
+    console.log("  3. 防火墙阻止连接");
+    console.log("  4. 网络配置问题");
+
+    // 提供解决建议
+    console.log("\n🔧 建议解决步骤:");
+    console.log("  1. 检查后端服务是否运行在8000端口");
+    console.log("  2. 获取当前IP地址:");
+    console.log(
+      "     - Mac/Linux: ifconfig | grep 'inet ' | grep -v 127.0.0.1"
+    );
+    console.log("     - Windows: ipconfig");
+    console.log(`  3. 更新 api.ts 中的 COMPUTER_IP 为新IP地址`);
+    console.log("  4. 确保手机和电脑在同一WiFi网络");
+  }
+};

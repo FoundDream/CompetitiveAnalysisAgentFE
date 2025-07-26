@@ -19,6 +19,7 @@ import {
   StatsIcon,
   UserIcon,
 } from "./SvgIcons";
+import { getPersonalizedRecommendation } from "../services/apiService";
 
 interface ComparePageProps {
   onBack?: () => void;
@@ -115,75 +116,27 @@ const ComparePage: React.FC<ComparePageProps> = ({
     setAnalysisResult(null);
 
     try {
-      // Mock API调用 - 模拟分析过程
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // 准备API请求参数
+      const budget = `${personalizedPrice.trim()}元`;
+      const specialRemark = personalizedNote.trim() || "无特殊要求";
+      const availableFruits = compareList.map((item) => item.name);
 
-      // Mock分析结果
-      const mockResult = generateMockAnalysisResult();
-      setAnalysisResult(mockResult);
+      // 调用真实的API
+      const result = await getPersonalizedRecommendation(
+        budget,
+        specialRemark,
+        availableFruits
+      );
+
+      setAnalysisResult(result);
     } catch (error) {
-      Alert.alert("分析失败", "请稍后重试");
+      const errorMessage =
+        error instanceof Error ? error.message : "分析失败，请稍后重试";
+      Alert.alert("分析失败", errorMessage);
       console.error("个性化分析失败:", error);
     } finally {
       setIsAnalyzing(false);
     }
-  };
-
-  // 生成Mock分析结果
-  const generateMockAnalysisResult = (): string => {
-    const budget = parseFloat(personalizedPrice);
-    const fruitNames = compareList.map((item) => item.name).join("、");
-    const avgPrice =
-      compareList.reduce((sum, item) => {
-        const price = parseFloat(
-          item.price.replace("¥", "").replace("/斤", "")
-        );
-        return sum + price;
-      }, 0) / compareList.length;
-
-    let recommendation = "";
-
-    if (budget >= avgPrice) {
-      const bestFruit = compareList.reduce((best, current) =>
-        current.rating > best.rating ? current : best
-      );
-      recommendation = `🎯 根据您的预算 ¥${budget}/斤，推荐选择「${bestFruit.name}」\n\n✨ 推荐理由：\n• 综合评分最高（${bestFruit.rating}/5）\n• 在您的预算范围内\n• ${bestFruit.description}`;
-    } else {
-      const affordableFruits = compareList.filter((item) => {
-        const price = parseFloat(
-          item.price.replace("¥", "").replace("/斤", "")
-        );
-        return price <= budget;
-      });
-
-      if (affordableFruits.length > 0) {
-        const bestAffordable = affordableFruits.reduce((best, current) =>
-          current.rating > best.rating ? current : best
-        );
-        recommendation = `💰 根据您的预算 ¥${budget}/斤，推荐选择「${bestAffordable.name}」\n\n✨ 推荐理由：\n• 在预算范围内的最佳选择\n• 性价比最高\n• ${bestAffordable.description}`;
-      } else {
-        const cheapest = compareList.reduce((cheapest, current) => {
-          const currentPrice = parseFloat(
-            current.price.replace("¥", "").replace("/斤", "")
-          );
-          const cheapestPrice = parseFloat(
-            cheapest.price.replace("¥", "").replace("/斤", "")
-          );
-          return currentPrice < cheapestPrice ? current : cheapest;
-        });
-        recommendation = `⚠️ 您的预算 ¥${budget}/斤 略低于当前对比水果的价格\n\n💡 建议：\n• 最接近预算的是「${
-          cheapest.name
-        }」(${cheapest.price})\n• 或者考虑调整预算到 ¥${avgPrice.toFixed(
-          1
-        )}/斤 左右`;
-      }
-    }
-
-    if (personalizedNote.trim()) {
-      recommendation += `\n\n📝 针对您的备注「${personalizedNote}」：\n• 建议选择口感和品质都符合您需求的水果\n• 可以关注产地和新鲜程度`;
-    }
-
-    return recommendation;
   };
 
   const clearPersonalizedInput = () => {
