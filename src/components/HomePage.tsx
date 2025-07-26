@@ -13,20 +13,13 @@ import {
 } from "react-native";
 import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
-import {
-  AppleIcon,
-  CameraIcon,
-  SearchIcon,
-  HomeIcon,
-  CompareIcon,
-  UserIcon,
-  SettingsIcon,
-} from "./SvgIcons";
+import { SearchIcon, SettingsIcon } from "./SvgIcons";
 import {
   analyzeImage,
   RecognitionResult as ApiRecognitionResult,
 } from "../services/apiService";
 import { useTask } from "../store/TaskStore";
+import CitySelector from "./CitySelector";
 
 interface HomePageProps {
   onRecognitionResult?: (
@@ -38,9 +31,11 @@ interface HomePageProps {
   onNavigateToTasks?: () => void;
 }
 
-const handleUserPress = () => {
-  console.log("用户");
-};
+interface City {
+  id: string;
+  name: string;
+  province: string;
+}
 
 const HomePage: React.FC<HomePageProps> = ({
   onRecognitionResult,
@@ -53,6 +48,7 @@ const HomePage: React.FC<HomePageProps> = ({
   const [permission, requestPermission] = useCameraPermissions();
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
   useEffect(() => {
@@ -212,12 +208,10 @@ const HomePage: React.FC<HomePageProps> = ({
           <Text style={styles.title}>PriceHunter</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={handleUserPress}
-          >
-            <UserIcon width={24} height={24} color="white" />
-          </TouchableOpacity>
+          <CitySelector
+            selectedCity={selectedCity}
+            onCitySelect={setSelectedCity}
+          />
         </View>
       </View>
 
