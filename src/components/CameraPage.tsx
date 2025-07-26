@@ -12,11 +12,17 @@ import {
 } from "react-native";
 import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
-import { CameraIcon, SearchIcon, ArrowLeftIcon } from "./SvgIcons";
+import {
+  CameraIcon,
+  SearchIcon,
+  ArrowLeftIcon,
+  SettingsIcon,
+} from "./SvgIcons";
 import {
   analyzeImage,
   RecognitionResult as ApiRecognitionResult,
 } from "../services/apiService";
+import { useTask } from "../store/TaskStore";
 
 interface CameraPageProps {
   onBack?: () => void;
@@ -30,6 +36,7 @@ const CameraPage: React.FC<CameraPageProps> = ({
   onBack,
   onRecognitionResult,
 }) => {
+  const { addImageTask } = useTask();
   const [facing, setFacing] = useState<CameraType>("back");
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -81,7 +88,6 @@ const CameraPage: React.FC<CameraPageProps> = ({
     setIsRecognizing(true);
     try {
       // 首先检查API服务是否可用
-
       const result = await analyzeImage(capturedImage);
       onRecognitionResult?.(result, capturedImage);
     } catch (error) {
@@ -95,6 +101,42 @@ const CameraPage: React.FC<CameraPageProps> = ({
     } finally {
       setIsRecognizing(false);
     }
+  };
+
+  const handleRecognizeOptions = () => {
+    if (!capturedImage) return;
+
+    Alert.alert("选择识别方式", "您希望立即查看结果，还是添加到后台任务？", [
+      { text: "取消", style: "cancel" },
+      {
+        text: "后台处理",
+        onPress: () => handleAsyncRecognition(),
+        style: "default",
+      },
+      {
+        text: "立即识别",
+        onPress: () => recognizeImage(),
+        style: "default",
+      },
+    ]);
+  };
+
+  const handleAsyncRecognition = () => {
+    if (!capturedImage) return;
+
+    const taskName = addImageTask(
+      capturedImage,
+      `图片识别 ${new Date().toLocaleTimeString()}`
+    );
+
+    Alert.alert(
+      "任务已添加",
+      `"${taskName}" 已添加到后台处理队列，您可以继续使用其他功能。完成后可在任务管理页面查看结果。`,
+      [
+        { text: "继续拍照", onPress: retakePicture },
+        { text: "返回", onPress: onBack },
+      ]
+    );
   };
 
   const retakePicture = () => {
@@ -182,7 +224,7 @@ const CameraPage: React.FC<CameraPageProps> = ({
                 styles.primaryButton,
                 isRecognizing && styles.disabledButton,
               ]}
-              onPress={recognizeImage}
+              onPress={handleRecognizeOptions}
               disabled={isRecognizing}
             >
               <SearchIcon width={20} height={20} color="white" />

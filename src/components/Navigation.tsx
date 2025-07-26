@@ -5,7 +5,9 @@ import SearchPage from "./SearchPage";
 import ComparePage from "./ComparePage";
 import CameraPage from "./CameraPage";
 import RecognitionResultPage from "./RecognitionResultPage";
-import { HomeIcon, CompareIcon } from "./SvgIcons";
+import TaskPage from "./TaskPage";
+import { HomeIcon, CompareIcon, SettingsIcon } from "./SvgIcons";
+import { useTask, Task } from "../store/TaskStore";
 
 export type PageType =
   | "home"
@@ -13,11 +15,13 @@ export type PageType =
   | "search"
   | "compare"
   | "camera"
-  | "recognition";
+  | "recognition"
+  | "tasks";
 
 interface NavigationProps {}
 
 const Navigation: React.FC<NavigationProps> = () => {
+  const { getActiveTasks } = useTask();
   const [currentPage, setCurrentPage] = useState<PageType>("home");
   const [recognitionResult, setRecognitionResult] = useState<any>(null);
   const [capturedImageUri, setCapturedImageUri] = useState<string>("");
@@ -99,9 +103,36 @@ const Navigation: React.FC<NavigationProps> = () => {
     console.log("从比较页面导航到搜索页面");
   };
 
+  const navigateToTasks = () => {
+    setCurrentPage("tasks");
+    setIsAddingToCompare(false);
+    console.log("导航到任务管理页面");
+  };
+
+  const handleTaskPress = (task: Task) => {
+    console.log(
+      "Navigation: handleTaskPress被调用:",
+      task.id,
+      "result:",
+      task.result
+    );
+    if (task.result) {
+      setRecognitionResult(task.result);
+      setCapturedImageUri(task.imageUri || "");
+      setCurrentPage("recognition");
+      console.log("从任务页面查看识别结果，跳转到recognition页面");
+    } else {
+      console.log("Navigation: 任务没有result，无法跳转");
+    }
+  };
+
   // 判断是否显示底部导航栏
   const shouldShowBottomNav = () => {
-    return currentPage === "home" || currentPage === "compare";
+    return (
+      currentPage === "home" ||
+      currentPage === "compare" ||
+      currentPage === "tasks"
+    );
   };
 
   // 渲染当前页面
@@ -119,6 +150,7 @@ const Navigation: React.FC<NavigationProps> = () => {
               onRecognitionResult={handleDirectRecognition}
               onTextSearch={navigateToSearch}
               onNavigateToCompare={navigateToCompare}
+              onNavigateToTasks={navigateToTasks}
             />
           </View>
         );
@@ -159,6 +191,12 @@ const Navigation: React.FC<NavigationProps> = () => {
             isFromCompare={isAddingToCompare}
           />
         );
+      case "tasks":
+        return (
+          <View style={pageStyle}>
+            <TaskPage onBack={navigateToHome} onTaskPress={handleTaskPress} />
+          </View>
+        );
       default:
         return (
           <View style={pageStyle}>
@@ -166,6 +204,7 @@ const Navigation: React.FC<NavigationProps> = () => {
               onRecognitionResult={handleDirectRecognition}
               onTextSearch={navigateToSearch}
               onNavigateToCompare={navigateToCompare}
+              onNavigateToTasks={navigateToTasks}
             />
           </View>
         );
@@ -234,6 +273,41 @@ const Navigation: React.FC<NavigationProps> = () => {
                 ]}
               >
                 比较
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.navItem,
+                currentPage === "tasks" && styles.activeNavItem,
+              ]}
+              onPress={navigateToTasks}
+            >
+              <View style={styles.navIconContainer}>
+                <SettingsIcon
+                  width={20}
+                  height={20}
+                  color={
+                    currentPage === "tasks"
+                      ? "white"
+                      : "rgba(255, 255, 255, 0.5)"
+                  }
+                />
+                {getActiveTasks().length > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {getActiveTasks().length}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text
+                style={[
+                  styles.navText,
+                  currentPage === "tasks" && styles.activeNavText,
+                ]}
+              >
+                任务
               </Text>
             </TouchableOpacity>
           </View>
@@ -310,6 +384,22 @@ const styles = StyleSheet.create({
   activeNavText: {
     color: "white",
     fontWeight: "500",
+  },
+  badge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#EF4444",
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  badgeText: {
+    fontSize: 10,
+    color: "white",
+    fontWeight: "bold",
   },
 });
 

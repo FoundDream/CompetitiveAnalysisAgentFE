@@ -20,11 +20,13 @@ import {
   HomeIcon,
   CompareIcon,
   UserIcon,
+  SettingsIcon,
 } from "./SvgIcons";
 import {
   analyzeImage,
   RecognitionResult as ApiRecognitionResult,
 } from "../services/apiService";
+import { useTask } from "../store/TaskStore";
 
 interface HomePageProps {
   onRecognitionResult?: (
@@ -33,6 +35,7 @@ interface HomePageProps {
   ) => void;
   onTextSearch?: () => void;
   onNavigateToCompare?: () => void;
+  onNavigateToTasks?: () => void;
 }
 
 const handleUserPress = () => {
@@ -43,7 +46,9 @@ const HomePage: React.FC<HomePageProps> = ({
   onRecognitionResult,
   onTextSearch,
   onNavigateToCompare,
+  onNavigateToTasks,
 }) => {
+  const { addImageTask, getActiveTasks } = useTask();
   const [facing, setFacing] = useState<CameraType>("back");
   const [permission, requestPermission] = useCameraPermissions();
   const [isRecognizing, setIsRecognizing] = useState(false);
@@ -108,13 +113,54 @@ const HomePage: React.FC<HomePageProps> = ({
       });
 
       if (!result.canceled && result.assets[0]) {
-        setCapturedImage(result.assets[0].uri);
-        await recognizeImage(result.assets[0].uri);
+        const imageUri = result.assets[0].uri;
+        setCapturedImage(imageUri);
+
+        // 提供选择识别方式的选项
+        Alert.alert(
+          "选择识别方式",
+          "您希望立即查看结果，还是添加到后台任务？",
+          [
+            {
+              text: "取消",
+              style: "cancel",
+              onPress: () => setCapturedImage(null),
+            },
+            {
+              text: "后台处理",
+              onPress: () => handleAsyncRecognition(imageUri),
+              style: "default",
+            },
+            {
+              text: "立即识别",
+              onPress: () => recognizeImage(imageUri),
+              style: "default",
+            },
+          ]
+        );
       }
     } catch (error) {
       Alert.alert("错误", "选择图片失败");
       console.error("选择图片错误:", error);
     }
+  };
+
+  const handleAsyncRecognition = (imageUri: string) => {
+    const taskName = addImageTask(
+      imageUri,
+      `相册图片 ${new Date().toLocaleTimeString()}`
+    );
+
+    Alert.alert(
+      "任务已添加",
+      `"${taskName}" 已添加到后台处理队列，您可以继续使用其他功能。完成后可在任务管理页面查看结果。`,
+      [
+        { text: "查看任务", onPress: () => onNavigateToTasks?.() },
+        { text: "确定", style: "default" },
+      ]
+    );
+
+    setCapturedImage(null);
   };
 
   const retakePhoto = () => {
@@ -247,14 +293,32 @@ const HomePage: React.FC<HomePageProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* 文字搜索入口 */}
-        <TouchableOpacity
-          style={styles.textSearchButton}
-          onPress={onTextSearch}
-        >
-          <SearchIcon width={20} height={20} color="white" />
-          <Text style={styles.textSearchText}>文字搜索</Text>
-        </TouchableOpacity>
+        {/* 功能按钮组 */}
+        <View style={styles.functionButtonsContainer}>
+          <TouchableOpacity
+            style={styles.textSearchButton}
+            onPress={onTextSearch}
+          >
+            <SearchIcon width={20} height={20} color="white" />
+            <Text style={styles.textSearchText}>文字搜索</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.taskButton}
+            onPress={onNavigateToTasks}
+          >
+            <SettingsIcon width={20} height={20} color="white" />
+            <Text style={styles.taskButtonText}>任务管理</Text>
+            {getActiveTasks().length > 0 && (
+              <View style={styles.taskBadge}>
+                <Text style={styles.taskBadgeText}>
+                  {getActiveTasks().length}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.powerTextContainer}>
           <Text style={styles.powerText}>POWERED BY KIMI/MINIMAX AI</Text>
         </View>
@@ -575,6 +639,44 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 14,
     fontWeight: "500",
+  },
+  functionButtonsContainer: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 16,
+  },
+  taskButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    gap: 8,
+    position: "relative",
+  },
+  taskButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  taskBadge: {
+    position: "absolute",
+    top: -4,
+    right: 8,
+    backgroundColor: "#EF4444",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  taskBadgeText: {
+    fontSize: 12,
+    color: "white",
+    fontWeight: "bold",
   },
 });
 

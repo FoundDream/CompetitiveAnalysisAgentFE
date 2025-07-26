@@ -1,11 +1,14 @@
 import React from "react";
 import Navigation from "./src/components/Navigation";
 import { CompareProvider } from "./src/store/CompareStore";
+import { TaskProvider } from "./src/store/TaskStore";
 
 export default function App() {
   return (
-    <CompareProvider>
-      <Navigation />
-    </CompareProvider>
+    <TaskProvider>
+      <CompareProvider>
+        <Navigation />
+      </CompareProvider>
+    </TaskProvider>
   );
 }

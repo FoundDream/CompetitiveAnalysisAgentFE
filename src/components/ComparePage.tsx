@@ -12,6 +12,13 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useCompare } from "../store/CompareStore";
+import {
+  CameraIcon,
+  SearchIcon,
+  SettingsIcon,
+  StatsIcon,
+  UserIcon,
+} from "./SvgIcons";
 
 interface ComparePageProps {
   onBack?: () => void;
@@ -50,14 +57,14 @@ const ComparePage: React.FC<ComparePageProps> = ({
       [
         { text: "取消", style: "cancel" },
         {
-          text: "拍照识别",
+          text: "📷 拍照识别",
           onPress: () => {
             console.log("选择拍照识别");
             onNavigateToCamera?.();
           },
         },
         {
-          text: "手动输入",
+          text: "✏️ 手动输入",
           onPress: () => {
             console.log("选择手动输入");
             onNavigateToSearch?.();
@@ -267,7 +274,13 @@ const ComparePage: React.FC<ComparePageProps> = ({
         {compareList.length === 0 ? (
           /* 空状态 */
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>⚖️</Text>
+            <View style={styles.emptyIconContainer}>
+              <StatsIcon
+                width={48}
+                height={48}
+                color="rgba(255, 255, 255, 0.5)"
+              />
+            </View>
             <Text style={styles.emptyText}>暂无对比项目</Text>
             <Text style={styles.emptySubText}>从水果详情页添加对比项目</Text>
             <TouchableOpacity
@@ -393,6 +406,129 @@ const ComparePage: React.FC<ComparePageProps> = ({
               </View>
             </View>
 
+            {/* 个性化分析推荐 */}
+            <View style={styles.personalizedSection}>
+              <View style={styles.personalizedHeader}>
+                <SettingsIcon width={20} height={20} color="#FDDDDC" />
+                <Text style={styles.personalizedTitle}>个性化分析推荐</Text>
+              </View>
+              <Text style={styles.personalizedSubtitle}>
+                输入您的预算和需求，获得专属推荐
+              </Text>
+
+              <View style={styles.inputContainer}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>预算价格 (元/斤)</Text>
+                  <View style={styles.inputWrapper}>
+                    <View style={styles.inputIconContainer}>
+                      <StatsIcon
+                        width={16}
+                        height={16}
+                        color="rgba(255, 255, 255, 0.7)"
+                      />
+                    </View>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="例如：10.5"
+                      placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                      value={personalizedPrice}
+                      onChangeText={setPersonalizedPrice}
+                      keyboardType="decimal-pad"
+                      editable={!isAnalyzing}
+                    />
+                    {personalizedPrice.length > 0 && !isAnalyzing && (
+                      <TouchableOpacity
+                        onPress={() => setPersonalizedPrice("")}
+                      >
+                        <Text style={styles.clearIcon}>✕</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>备注说明 (可选)</Text>
+                  <View style={styles.inputWrapper}>
+                    <View style={styles.inputIconContainer}>
+                      <UserIcon
+                        width={16}
+                        height={16}
+                        color="rgba(255, 255, 255, 0.7)"
+                      />
+                    </View>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="例如：喜欢甜一点的，给小孩吃"
+                      placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                      value={personalizedNote}
+                      onChangeText={setPersonalizedNote}
+                      multiline
+                      maxLength={100}
+                      editable={!isAnalyzing}
+                    />
+                    {personalizedNote.length > 0 && !isAnalyzing && (
+                      <TouchableOpacity onPress={() => setPersonalizedNote("")}>
+                        <Text style={styles.clearIcon}>✕</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+
+                <View style={styles.buttonGroup}>
+                  <TouchableOpacity
+                    style={[
+                      styles.analyzeButton,
+                      isAnalyzing && styles.analyzingButton,
+                      (compareList.length === 0 || !personalizedPrice.trim()) &&
+                        styles.disabledButton,
+                    ]}
+                    onPress={handlePersonalizedAnalysis}
+                    disabled={
+                      isAnalyzing ||
+                      compareList.length === 0 ||
+                      !personalizedPrice.trim()
+                    }
+                  >
+                    {isAnalyzing ? (
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color="#370B0B" />
+                        <Text style={styles.analyzeButtonText}>分析中...</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.analyzeButtonText}>
+                        获取个性化推荐
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+
+                  {!isAnalyzing &&
+                    (personalizedPrice ||
+                      personalizedNote ||
+                      analysisResult) && (
+                      <TouchableOpacity
+                        style={styles.clearButton}
+                        onPress={clearPersonalizedInput}
+                      >
+                        <Text style={styles.clearButtonText}>清空</Text>
+                      </TouchableOpacity>
+                    )}
+                </View>
+              </View>
+
+              {/* 分析结果显示 */}
+              {analysisResult && (
+                <View style={styles.resultContainer}>
+                  <View style={styles.resultHeader}>
+                    <StatsIcon width={18} height={18} color="#FDDDDC" />
+                    <Text style={styles.resultTitle}>分析结果</Text>
+                  </View>
+                  <View style={styles.resultContent}>
+                    <Text style={styles.resultText}>{analysisResult}</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+
             {/* 推荐结论 */}
             {/* <View style={styles.recommendationContainer}>
               <Text style={styles.recommendationTitle}>推荐结论</Text>
@@ -441,105 +577,6 @@ const ComparePage: React.FC<ComparePageProps> = ({
             </View> */}
           </>
         )}
-
-        {/* 个性化分析推荐 */}
-        <View style={styles.personalizedSection}>
-          <Text style={styles.personalizedTitle}>🤖 个性化分析推荐</Text>
-          <Text style={styles.personalizedSubtitle}>
-            输入您的预算和需求，获得专属推荐
-          </Text>
-
-          <View style={styles.inputContainer}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>预算价格 (元/斤)</Text>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>💰</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="例如：10.5"
-                  placeholderTextColor="rgba(255, 255, 255, 0.5)"
-                  value={personalizedPrice}
-                  onChangeText={setPersonalizedPrice}
-                  keyboardType="decimal-pad"
-                  editable={!isAnalyzing}
-                />
-                {personalizedPrice.length > 0 && !isAnalyzing && (
-                  <TouchableOpacity onPress={() => setPersonalizedPrice("")}>
-                    <Text style={styles.clearIcon}>✕</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>备注说明 (可选)</Text>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>📝</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="例如：喜欢甜一点的，给小孩吃"
-                  placeholderTextColor="rgba(255, 255, 255, 0.5)"
-                  value={personalizedNote}
-                  onChangeText={setPersonalizedNote}
-                  multiline
-                  maxLength={100}
-                  editable={!isAnalyzing}
-                />
-                {personalizedNote.length > 0 && !isAnalyzing && (
-                  <TouchableOpacity onPress={() => setPersonalizedNote("")}>
-                    <Text style={styles.clearIcon}>✕</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.buttonGroup}>
-              <TouchableOpacity
-                style={[
-                  styles.analyzeButton,
-                  isAnalyzing && styles.analyzingButton,
-                  (compareList.length === 0 || !personalizedPrice.trim()) &&
-                    styles.disabledButton,
-                ]}
-                onPress={handlePersonalizedAnalysis}
-                disabled={
-                  isAnalyzing ||
-                  compareList.length === 0 ||
-                  !personalizedPrice.trim()
-                }
-              >
-                {isAnalyzing ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color="#370B0B" />
-                    <Text style={styles.analyzeButtonText}>分析中...</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.analyzeButtonText}>获取个性化推荐</Text>
-                )}
-              </TouchableOpacity>
-
-              {!isAnalyzing &&
-                (personalizedPrice || personalizedNote || analysisResult) && (
-                  <TouchableOpacity
-                    style={styles.clearButton}
-                    onPress={clearPersonalizedInput}
-                  >
-                    <Text style={styles.clearButtonText}>清空</Text>
-                  </TouchableOpacity>
-                )}
-            </View>
-          </View>
-
-          {/* 分析结果显示 */}
-          {analysisResult && (
-            <View style={styles.resultContainer}>
-              <Text style={styles.resultTitle}>📊 分析结果</Text>
-              <View style={styles.resultContent}>
-                <Text style={styles.resultText}>{analysisResult}</Text>
-              </View>
-            </View>
-          )}
-        </View>
 
         {/* 底部间距，为统一导航栏留出空间 */}
         <View style={styles.bottomSpacing} />
@@ -601,6 +638,11 @@ const styles = StyleSheet.create({
   emptyIcon: {
     fontSize: 64,
     marginBottom: 16,
+  },
+  emptyIconContainer: {
+    marginBottom: 16,
+    justifyContent: "center",
+    alignItems: "center",
   },
   emptyText: {
     fontSize: 18,
@@ -865,11 +907,16 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 20,
   },
+  personalizedHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    gap: 8,
+  },
   personalizedTitle: {
     fontSize: 18,
     fontWeight: "300",
     color: "white",
-    marginBottom: 8,
   },
   personalizedSubtitle: {
     fontSize: 14,
@@ -898,6 +945,11 @@ const styles = StyleSheet.create({
   inputIcon: {
     fontSize: 16,
     marginRight: 12,
+  },
+  inputIconContainer: {
+    marginRight: 12,
+    justifyContent: "center",
+    alignItems: "center",
   },
   textInput: {
     flex: 1,
@@ -959,11 +1011,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
   },
+  resultHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    gap: 8,
+  },
   resultTitle: {
     fontSize: 16,
     color: "white",
     fontWeight: "300",
-    marginBottom: 12,
   },
   resultContent: {
     backgroundColor: "rgba(255, 255, 255, 0.05)",

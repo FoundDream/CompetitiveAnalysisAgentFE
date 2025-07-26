@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { analyzeText, RecognitionResult } from "../services/apiService";
+import { useTask } from "../store/TaskStore";
 
 interface SearchPageProps {
   onBack?: () => void;
@@ -22,6 +23,7 @@ const SearchPage: React.FC<SearchPageProps> = ({
   onBack,
   onRecognitionResult,
 }) => {
+  const { addTextTask } = useTask();
   const [fruitLabel, setFruitLabel] = useState("");
   const [price, setPrice] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -110,6 +112,39 @@ const SearchPage: React.FC<SearchPageProps> = ({
       setIsAnalyzing(false);
       setAnalysisProgress("");
     }
+  };
+
+  const handleAnalyzeOptions = () => {
+    if (!validateInput()) return;
+
+    Alert.alert("选择分析方式", "您希望立即查看结果，还是添加到后台任务？", [
+      { text: "取消", style: "cancel" },
+      {
+        text: "后台处理",
+        onPress: () => handleAsyncAnalysis(),
+        style: "default",
+      },
+      {
+        text: "立即分析",
+        onPress: () => handleAnalyze(),
+        style: "default",
+      },
+    ]);
+  };
+
+  const handleAsyncAnalysis = () => {
+    if (!validateInput()) return;
+
+    const taskName = addTextTask(fruitLabel, price);
+
+    Alert.alert(
+      "任务已添加",
+      `"${taskName}" 已添加到后台处理队列，您可以继续使用其他功能。完成后可在任务管理页面查看结果。`,
+      [
+        { text: "继续输入", onPress: handleClearInput },
+        { text: "返回", onPress: onBack },
+      ]
+    );
   };
 
   const handleClearInput = () => {
@@ -205,7 +240,7 @@ const SearchPage: React.FC<SearchPageProps> = ({
                 styles.analyzeButton,
                 isAnalyzing && styles.analyzingButton,
               ]}
-              onPress={handleAnalyze}
+              onPress={handleAnalyzeOptions}
               disabled={isAnalyzing || !fruitLabel.trim() || !price.trim()}
             >
               {isAnalyzing ? (

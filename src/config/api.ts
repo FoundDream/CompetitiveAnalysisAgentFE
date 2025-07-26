@@ -42,7 +42,7 @@ const getBaseUrl = (): string => {
 // API配置
 export const API_CONFIG = {
   BASE_URL: getBaseUrl(),
-  TIMEOUT: 90000, // 90秒，给AI分析更多时间
+  TIMEOUT: 900000, // 90秒，给AI分析更多时间
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
   SUPPORTED_IMAGE_TYPES: ["jpg", "jpeg", "png", "gif", "bmp", "webp"],
 };
