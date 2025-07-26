@@ -27,6 +27,7 @@ interface ComparePageProps {
   onNavigateToHome?: () => void;
   onNavigateToCamera?: () => void;
   onNavigateToSearch?: () => void;
+  onViewFruitDetail?: (result: any, imageUri: string) => void; // 新增：查看水果详情的回调
 }
 
 const ComparePage: React.FC<ComparePageProps> = ({
@@ -35,6 +36,7 @@ const ComparePage: React.FC<ComparePageProps> = ({
   onNavigateToHome,
   onNavigateToCamera,
   onNavigateToSearch,
+  onViewFruitDetail,
 }) => {
   const { state, removeItem, clearAll } = useCompare();
   const compareList = state.items;
@@ -91,6 +93,15 @@ const ComparePage: React.FC<ComparePageProps> = ({
   const handleFruitPress = (fruitName: string) => {
     console.log("查看水果详情:", fruitName);
     // onFruitPress?.(fruitName);
+  };
+
+  // 处理水果卡片点击，进入详情页面
+  const handleFruitCardPress = (item: any) => {
+    console.log("点击水果卡片:", item.name);
+    if (onViewFruitDetail && item.fullData) {
+      // 使用完整的识别结果数据，不传递图片URI（因为比较列表中的项目可能来自文字输入）
+      onViewFruitDetail(item.fullData, "");
+    }
   };
 
   // 个性化分析处理函数
@@ -253,7 +264,12 @@ const ComparePage: React.FC<ComparePageProps> = ({
                 contentContainerStyle={styles.compareCards}
               >
                 {compareList.map((item) => (
-                  <View key={item.id} style={styles.compareCard}>
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.compareCard}
+                    onPress={() => handleFruitCardPress(item)}
+                    activeOpacity={0.8}
+                  >
                     <TouchableOpacity
                       style={styles.removeButton}
                       onPress={() => handleRemoveFromCompare(item.id)}
@@ -283,7 +299,12 @@ const ComparePage: React.FC<ComparePageProps> = ({
                         {item.description}
                       </Text>
                     </View>
-                  </View>
+
+                    {/* 添加点击提示 */}
+                    <View style={styles.tapHintContainer}>
+                      <Text style={styles.tapHint}>点击查看详情</Text>
+                    </View>
+                  </TouchableOpacity>
                 ))}
 
                 {/* 添加更多按钮 */}
@@ -306,14 +327,14 @@ const ComparePage: React.FC<ComparePageProps> = ({
               <View style={styles.comparisonTable}>
                 {/* 价格对比 */}
                 <View style={styles.comparisonRow}>
-                  <Text style={styles.comparisonLabel}>¥价格</Text>
+                  <Text style={styles.comparisonLabel}>价格</Text>
                   <View style={styles.comparisonValues}>
                     {compareList.map((item) => (
                       <View
                         key={item.id}
                         style={styles.comparisonValueContainer}
                       >
-                        <Text style={styles.priceValue}>{item.price}</Text>
+                        <Text style={styles.priceValue}>¥{item.price}</Text>
                       </View>
                     ))}
                   </View>
@@ -981,6 +1002,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "rgba(255, 255, 255, 0.9)",
     lineHeight: 22,
+  },
+  tapHintContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
+  },
+  tapHint: {
+    fontSize: 11,
+    color: "rgba(255, 255, 255, 0.6)",
+    textAlign: "center",
+    fontStyle: "italic",
   },
 });
 

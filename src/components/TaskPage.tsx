@@ -29,6 +29,7 @@ const TaskPage: React.FC<TaskPageProps> = ({ onBack, onTaskPress }) => {
   const {
     state,
     removeTask,
+    retryTask,
     clearCompleted,
     clearAll,
     getActiveTasks,
@@ -70,6 +71,13 @@ const TaskPage: React.FC<TaskPageProps> = ({ onBack, onTaskPress }) => {
     Alert.alert("删除任务", "确定要删除这个任务吗？", [
       { text: "取消", style: "cancel" },
       { text: "删除", style: "destructive", onPress: () => removeTask(taskId) },
+    ]);
+  };
+
+  const handleRetryTask = (taskId: string) => {
+    Alert.alert("重试任务", "确定要重新执行这个任务吗？", [
+      { text: "取消", style: "cancel" },
+      { text: "重试", onPress: () => retryTask(taskId) },
     ]);
   };
 
@@ -236,6 +244,12 @@ const TaskPage: React.FC<TaskPageProps> = ({ onBack, onTaskPress }) => {
         {task.status === "failed" && task.error && (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{task.error}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => handleRetryTask(task.id)}
+            >
+              <Text style={styles.retryButtonText}>🔄 重试</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -600,6 +614,19 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 100,
+  },
+  retryButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginTop: 8,
+    alignSelf: "flex-start",
+  },
+  retryButtonText: {
+    fontSize: 12,
+    color: "#86EFAC",
+    fontWeight: "500",
   },
 });
 

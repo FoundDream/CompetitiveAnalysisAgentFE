@@ -545,7 +545,7 @@ export const getPersonalizedRecommendation = async (
           recommendationText = values
             .map((value, index) => {
               const fruitName = Object.keys(parsedData)[index];
-              return `🍊 **${fruitName}**\n\n${value}`;
+              return `${value}`;
             })
             .join("\n\n---\n\n");
         }

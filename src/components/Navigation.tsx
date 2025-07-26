@@ -26,6 +26,7 @@ const Navigation: React.FC<NavigationProps> = () => {
   const [recognitionResult, setRecognitionResult] = useState<any>(null);
   const [capturedImageUri, setCapturedImageUri] = useState<string>("");
   const [isAddingToCompare, setIsAddingToCompare] = useState(false); // 标记是否正在为比较添加水果
+  const [previousPage, setPreviousPage] = useState<PageType>("home"); // 跟踪上一个页面
 
   const navigateToHome = () => {
     setCurrentPage("home");
@@ -37,11 +38,13 @@ const Navigation: React.FC<NavigationProps> = () => {
       setIsAddingToCompare(false);
       setCurrentPage("compare");
     } else {
-      setCurrentPage("home");
+      // 返回到之前的页面
+      setCurrentPage(previousPage);
     }
   };
 
   const handleDirectRecognition = (result: any, imageUri: string) => {
+    setPreviousPage("home"); // 从首页发起的识别，设置上一个页面为首页
     setRecognitionResult(result);
     setCapturedImageUri(imageUri);
     setCurrentPage("recognition");
@@ -58,9 +61,12 @@ const Navigation: React.FC<NavigationProps> = () => {
 
     if (isAddingToCompare) {
       // 如果是从比较页面发起的，直接添加到比较并返回比较页面
+      setPreviousPage("compare");
       setCurrentPage("recognition");
       // 设置一个标记，让RecognitionResultPage知道需要自动添加到比较
     } else {
+      // 从搜索或拍照页面发起的，设置上一个页面为首页
+      setPreviousPage("home");
       setCurrentPage("recognition");
     }
   };
@@ -90,6 +96,15 @@ const Navigation: React.FC<NavigationProps> = () => {
     navigateToCompare();
   };
 
+  // 从比较页面查看水果详情
+  const handleViewFruitDetailFromCompare = (result: any, imageUri: string) => {
+    console.log("从比较页面查看水果详情:", result.name);
+    setPreviousPage("compare"); // 设置上一个页面为比较页面
+    setRecognitionResult(result);
+    setCapturedImageUri(imageUri);
+    setCurrentPage("recognition");
+  };
+
   // 从比较页面发起的添加操作
   const navigateToCameraFromCompare = () => {
     setIsAddingToCompare(true);
@@ -117,6 +132,7 @@ const Navigation: React.FC<NavigationProps> = () => {
       task.result
     );
     if (task.result) {
+      setPreviousPage("tasks"); // 设置上一个页面为任务管理页面
       setRecognitionResult(task.result);
       setCapturedImageUri(task.imageUri || "");
       setCurrentPage("recognition");
@@ -170,6 +186,7 @@ const Navigation: React.FC<NavigationProps> = () => {
               onNavigateToHome={navigateToHome}
               onNavigateToCamera={navigateToCameraFromCompare}
               onNavigateToSearch={navigateToSearchFromCompare}
+              onViewFruitDetail={handleViewFruitDetailFromCompare}
             />
           </View>
         );

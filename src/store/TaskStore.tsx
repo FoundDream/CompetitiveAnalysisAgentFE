@@ -59,6 +59,7 @@ type TaskAction =
       payload: { id: string; result: RecognitionResult };
     }
   | { type: "FAIL_TASK"; payload: { id: string; error: string } }
+  | { type: "RETRY_TASK"; payload: string }
   | { type: "REMOVE_TASK"; payload: string }
   | { type: "CLEAR_COMPLETED" }
   | { type: "CLEAR_ALL" };
@@ -149,6 +150,27 @@ const taskReducer = (state: TaskState, action: TaskAction): TaskState => {
       };
     }
 
+    case "RETRY_TASK": {
+      const taskId = action.payload;
+      const updatedTasks = state.tasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              status: "pending" as TaskStatus,
+              error: undefined,
+              progress: 0,
+              completedAt: undefined,
+            }
+          : task
+      );
+
+      return {
+        ...state,
+        tasks: updatedTasks,
+        activeTasks: state.activeTasks + 1,
+      };
+    }
+
     case "REMOVE_TASK": {
       const taskToRemove = state.tasks.find(
         (task) => task.id === action.payload
@@ -192,6 +214,7 @@ interface TaskContextType {
   state: TaskState;
   addImageTask: (imageUri: string, displayName?: string) => string;
   addTextTask: (fruitName: string, price: string, note?: string) => string;
+  retryTask: (id: string) => void;
   removeTask: (id: string) => void;
   clearCompleted: () => void;
   clearAll: () => void;
@@ -377,6 +400,10 @@ export const TaskProvider: React.FC<TaskProviderProps> = ({ children }) => {
     return taskData.displayName;
   };
 
+  const retryTask = (id: string) => {
+    dispatch({ type: "RETRY_TASK", payload: id });
+  };
+
   const removeTask = (id: string) => {
     dispatch({ type: "REMOVE_TASK", payload: id });
   };
@@ -411,6 +438,7 @@ export const TaskProvider: React.FC<TaskProviderProps> = ({ children }) => {
     state,
     addImageTask,
     addTextTask,
+    retryTask,
     removeTask,
     clearCompleted,
     clearAll,
